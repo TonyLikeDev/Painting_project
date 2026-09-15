@@ -1,0 +1,49 @@
+--- painter.py.orig	2026-09-05 11:13:08
++++ painter.py	2026-09-05 11:13:08
+@@ -12,7 +12,9 @@
+ import torch
+ 
+ # Decide which device we want to run on
+-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
++device = torch.device("cuda:0" if torch.cuda.is_available()
++                      else "mps" if torch.backends.mps.is_available()
++                      else "cpu")
+ 
+ 
+ class PainterBase():
+@@ -66,7 +68,8 @@
+             print('loading renderer from pre-trained checkpoint...')
+             # load the entire checkpoint
+             checkpoint = torch.load(os.path.join(self.renderer_checkpoint_dir, 'last_ckpt.pt'),
+-                                map_location=None if torch.cuda.is_available() else device)
++                                map_location='cpu',  # load on CPU, then .to(device) below (works for cuda/mps/cpu)
++                                weights_only=False)  # 2020 checkpoint pickles numpy scalars; PyTorch>=2.6 defaults weights_only=True
+             # update net_G states
+             self.net_G.load_state_dict(checkpoint['model_G_state_dict'])
+             self.net_G.to(device)
+--- networks.py.orig	2026-09-05 11:13:08
++++ networks.py	2026-09-05 11:13:08
+@@ -11,7 +11,9 @@
+ import numpy as np
+ 
+ # Decide which device we want to run on
+-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
++device = torch.device("cuda:0" if torch.cuda.is_available()
++                      else "mps" if torch.backends.mps.is_available()
++                      else "cpu")
+ 
+ PI = math.pi
+ ###############################################################################
+--- demo_prog.py.orig	2026-09-05 11:13:08
++++ demo_prog.py	2026-09-05 11:13:08
+@@ -41,7 +41,9 @@
+ 
+ 
+ # Decide which device we want to run on
+-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
++device = torch.device("cuda:0" if torch.cuda.is_available()
++                      else "mps" if torch.backends.mps.is_available()
++                      else "cpu")
+ 
+ 
+ def optimize_x(pt):
