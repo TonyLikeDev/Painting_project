@@ -1,1 +1,24 @@
+# original 2021 repo (nested git checkout, patched locally; see experiments/original_repo_modern_torch.patch)
 stylized-neural-painting
+
+# environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# checkpoints and heavy experiment outputs are never committed (RESEARCH_PLAN.md section 3.7)
+checkpoints/
+*.pt
+*.pth
+experiments/**/frames/
+experiments/**/*.mp4
+experiments/**/*.gif
+
+# os
+.DS_Store
+Thumbs.db

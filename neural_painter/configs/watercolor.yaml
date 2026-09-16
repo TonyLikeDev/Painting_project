@@ -1,0 +1,32 @@
+# Watercolour / ink. Matches renderer 'watercolor' in the original repository.
+name: watercolor
+display_name: Watercolour ink
+description: >
+  Quadratic Bezier stroke from (x0, y0) to (x2, y2). The control point is stored
+  relative to the chord: P1 = P0 + (P2 - P0) * (x1, y1). The pen is a disc whose
+  radius interpolates from radius0 to radius2 and whose colour interpolates from
+  (r0, g0, b0) to (r2, g2, b2) along the curve. alpha is the stroke opacity.
+param_names: [x0, y0, x1, y1, x2, y2, radius0, radius2, r0, g0, b0, r2, g2, b2, alpha]
+shape_dim: 8
+color_dim: 6
+alpha_dim: 1
+layout:
+  x_params: [x0, x2]
+  y_params: [y0, y2]
+  size_params: [radius0, radius2]
+default_canvas_color: white
+renderer:
+  checkpoint_full: checkpoints_G_watercolor
+  checkpoint_light: checkpoints_G_watercolor_light
+  net_full: zou-fusion-net
+  net_light: zou-fusion-net-light
+  alpha_forced_to_one: false
+  out_size_full: 128
+  out_size_light: 32
+sampler:
+  size_range: [0.1, 0.25]
+  alpha_range: [0.98, 1.0]
+defaults:
+  max_strokes: 500
+  max_divide: 5
+  lr: 0.002
