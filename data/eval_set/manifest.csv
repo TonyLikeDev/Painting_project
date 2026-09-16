@@ -1,0 +1,12 @@
+name,file,origin,source_file,source_width,source_height,crop_box,size,sha256,tags
+alien,alien.png,original repo test_images,alien.jpg,494,496,0 1 494 495,512,b27fea176fe1234854ee26563f50ba6266f4f00b0243445b3e278e799ffad380,"toy figure, saturated colours, studio background"
+apple,apple.png,original repo test_images,apple.jpg,1021,854,83 0 937 854,512,b2eaf03b361cfc91de32ee1763aaeb2d229fc181028826b1c2ae0bbaeb234776,"still life, single object on white"
+cube2,cube2.png,original repo test_images,cube2.jpg,533,483,25 0 508 483,512,b2a0606338ccb8adba1a9f16be8bfa1d064f29c0d7f36c2d6436857c06342200,"Rubik's cube, flat colour regions, sharp edges"
+diamond,diamond.png,original repo test_images,diamond.jpg,396,377,9 0 386 377,512,6566bdd114b7eb3dcbc7c54b1fa457aabaaf89ff48ce5da514865fd2e04c5049,"gem on dark background, specular highlights"
+diamond2,diamond2.png,original repo test_images,diamond2.jpg,477,463,7 0 470 463,512,0a37166e4595e4dac31fb081016896da9d307a04f6f5fc05c514a44b501f2dd3,"gem, second view, dark background"
+fire,fire.png,original repo test_images,fire.jpg,748,709,19 0 728 709,512,69d9b4ab937d20dc81ff06571b9bd40e47e2f1ed5d9f096a667521669296537e,"flames, high-frequency texture, dark background"
+iceland,iceland.png,original repo test_images,iceland.jpg,568,452,58 0 510 452,512,bc3f1b3a016cb1ec1b26fd69cfa7ec01bd9d0fd46ed4904f5013bce5b5eab395,"landscape, sky and water, low-frequency regions"
+jay,jay.png,original repo test_images,jay.jpg,729,640,44 0 684 640,512,3ef962e9b6b868ff04c0b214c7f98bdbda14e8c4fef87a81ec66ccaf58ca8f1e,"bird, fine feather texture"
+joker,joker.png,original repo test_images,joker.jpg,559,563,0 2 559 561,512,558810d1bcbe88491c649d5f870c1fb19e2e03c44216ad93790767d146efe8f0,"face / portrait, painted make-up"
+sunflowers,sunflowers.png,original repo test_images,sunflowers.jpg,677,672,2 0 674 672,512,affb33386246c565ba9864f5bffd0467745681e90ca61b72b5114cde9f315bfe,"painting (van Gogh), dense texture"
+yosemite,yosemite.png,original repo test_images,yosemite.jpg,640,480,80 0 560 480,512,18169571240f5f66726c0ee62ca2bb5fcc629f1060e16b46c390ae5a31e4e048,"landscape, rock and trees"
