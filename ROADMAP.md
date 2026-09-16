@@ -1,0 +1,113 @@
+# Roadmap and status
+
+Master schedule: `RESEARCH_PLAN.md` section 4 (10 weeks). This file is the live
+status board. **Rule: whenever an item is finished, tick it here in the same
+commit**, and add a dated line under "Change log". Never edit `RESEARCH_PLAN.md`
+to record progress; it is the plan, this is the state.
+
+Legend: `[x]` done, `[~]` written but not verified, `[ ]` open. Machines: `desktop`
+= RTX 3070 / i5-13400F (profiles `cuda`, `cpu`), `macbook` = Apple M4 (profile `mps`).
+
+Last updated: 2026-09-16 (desktop session).
+
+---
+
+## Week 1: Literature review and proposal finalization
+
+### Build
+- [x] MacBook environment and `mps` baseline (2026-09-05, `experiments/week1_baseline.md`).
+- [x] Desktop environment: `venv/` (Python 3.11.9, torch 2.11.0+cu128, torchvision 0.26.0, CUDA 12.8 on the RTX 3070). Created 2026-09-16.
+- [x] All 8 pretrained renderer checkpoints downloaded and unzipped into `stylized-neural-painting/checkpoints_G_*` (full + light for oil, watercolor, markerpen, rectangle).
+- [x] Original repo patched for modern PyTorch and `mps`; patch extended with a `--seed` flag; diff kept in `experiments/original_repo_modern_torch.patch`.
+- [ ] `experiments/hardware.md` with both machines (desktop facts collected: i5-13400F 10c/16t, 31.8 GB RAM, RTX 3070 8 GB, driver 595.79, CUDA 13.2 runtime, Windows 11 Pro 26200; MacBook facts in `week1_baseline.md`).
+- [ ] Git remote sync check from the MacBook (remote exists: `origin` on GitHub).
+
+### Measure
+- [x] `mps` and `cpu` (M4) rows for apple + oil (`experiments/week1_baseline.md`).
+- [ ] `cuda` rows on the desktop, 4 brushes, seed 0 (runner script `scripts/run_original_baselines.sh` still to write and run).
+- [ ] `cpu` rows on the desktop i5 (same script, `CUDA_VISIBLE_DEVICES=""`).
+- [ ] Merge all rows into one table in `experiments/week1_baseline.md`.
+
+### Write
+- [x] Annotated bibliography: `report/bibliography.md` (20 entries, "[verify]" marks on uncertain details).
+- [x] Related Work outline: `report/related_work_outline.md`.
+- [x] Proposal Section 4.1 correction text (VI + EN) and other conflicts: `report/proposal_corrections.md`.
+- [ ] Apply the corrections to the proposal document and submit it (user action, not automatable).
+
+### Exit criteria
+- [x] Baseline demo runs end to end (MacBook). Desktop run pending.
+- [ ] Proposal submitted.
+- [x] Bibliography file exists.
+
+---
+
+## Week 2: Theory and system architecture
+
+### Build
+- [x] Package skeleton `neural_painter/` with `core/`, `models/`, `losses/`, `pipeline/`, `export/`, `app/`, `configs/`, `assets/brushes/`; `pyproject.toml` at repo root; `tests/`, `scripts/`, `data/` directories.
+- [x] Four YAML brush configs (`oil_brush.yaml`, `watercolor.yaml`, `marker_pen.yaml`, `tape.yaml`) holding the parameter layouts from RESEARCH_PLAN section 2.2.
+- [ ] Stub modules with documented interfaces for `models/`, `losses/`, `pipeline/`, `export/`, `app/` (only `__init__.py` placeholders exist).
+- [ ] System architecture diagram (`report/figures/system_architecture.svg` + PNG).
+- [ ] Renderer architecture diagram (`report/figures/renderer_architecture.svg` + PNG).
+
+### Measure
+- [x] One-page notes per original file: `report/notes/original_code/` (renderer, networks, loss, pytorch_batch_sinkhorn, painter, utils + README index).
+
+### Write
+- [x] Theory chapter draft: `report/chapters/02_theory.md` (about 7,200 words, sections 2.1 to 2.9).
+- [x] Method section skeleton: `report/paper/method_skeleton.md`.
+
+### Exit criteria
+- [~] Package skeleton imports cleanly (core verified by smoke test; full `pytest` run pending).
+- [ ] Two diagrams saved as SVG/PNG.
+- [x] Theory draft of at least 8 pages.
+
+---
+
+## Week 3: Image input and preprocessing module
+
+### Build
+- [~] `core/image_io.py` (load, sample picker, crop, resize stretch/crop/pad, normalize, tensor, `preprocess`).
+- [~] `core/stroke_models.py` (`BrushSpec` from YAML, typed `Stroke` dataclasses, validation, clipping).
+- [~] `core/procedural_rasterizer.py` (faithful port of the original OpenCV rasterizer, 4 brushes, uniform sampling, texture loading).
+- [~] `core/grid.py` (split/merge, `img2patches`/`patches2img`, `block_to_global`, progressive schedule helper).
+- [~] Extras done early because they are tiny: `core/device.py`, `core/morphology.py` (vectorized), `core/differentiable_canvas.py`.
+- [ ] `tests/test_rasterizer.py` (incl. pixel-parity test against the original `renderer.py`), `tests/test_image_io.py`, `tests/test_grid.py`, `tests/test_stroke_models.py`, `tests/test_package_imports.py`.
+
+### Measure
+- [ ] Freeze the evaluation set at 512x512 PNG in `data/eval_set/` (11 repo images + 10 to 20 self-collected photos, the latter to be added by the user) and record it in `experiments/dataset.md` with hashes.
+
+### Write
+- [ ] Dataset and preprocessing subsection (`report/chapters/05_experiments_setup.md`) with the figure input / crop / normalized / grid split (`report/figures/preprocessing_pipeline.png`, produced by `scripts/make_preprocessing_figure.py`).
+
+### Exit criteria
+- [ ] Tests pass.
+- [~] A random stroke of each brush renders through the procedural rasterizer (smoke test passed; parity with the original not yet verified).
+- [ ] Dataset frozen.
+
+---
+
+## Weeks 4 to 10
+
+Not started. See `RESEARCH_PLAN.md` section 4 for the full list. Next up after
+Week 3 closes: Week 4 neural renderer (`models/neural_renderer.py`, checkpoint
+adapter for the original `zou-fusion-net` weights, `pipeline/train_renderer.py`,
+gradient test, oil renderer training on the desktop).
+
+---
+
+## Immediate next actions (in order)
+
+1. Run `pytest` after writing the Week 3 tests; fix whatever fails.
+2. Write and run `scripts/run_original_baselines.sh cuda` then `cpu` on the desktop (about 30 min total); fill the table in `experiments/week1_baseline.md` and write `experiments/hardware.md`.
+3. Stub modules + two SVG diagrams (Week 2 leftovers).
+4. `scripts/freeze_dataset.py` -> `data/eval_set/`, `experiments/dataset.md`; `scripts/make_preprocessing_figure.py` -> figure; write the dataset subsection.
+5. Week checklists `experiments/week_01.md`, `week_02.md`, `week_03.md` from the template in RESEARCH_PLAN section 7.
+6. Commit, push, pull on the MacBook, run the test suite there (`mps` smoke).
+
+---
+
+## Change log
+
+- 2026-09-05 (macbook): planning docs, MacBook baseline (`mps` 118 s, `cpu` 252 s), first patch.
+- 2026-09-16 (desktop): venv + CUDA torch; 8 checkpoints; patch regenerated with `--seed`; `neural_painter` core modules, configs, `pyproject.toml`; Week 1 and Week 2 writing (bibliography, related-work outline, proposal corrections, theory chapter, method skeleton, original-code notes); this roadmap; `CLAUDE.md` / `AGENTS.md`. Session cut short before tests, baselines, diagrams and dataset freeze.

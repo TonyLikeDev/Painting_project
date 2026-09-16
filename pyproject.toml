@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neural-painter"
+version = "0.1.0"
+description = "Photo-to-painting with a differentiable neural renderer (a modernized re-implementation of Stylized Neural Painting)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "CC-BY-NC-SA-4.0" }
+authors = [{ name = "Nguyen Le Hoang" }]
+dependencies = [
+    "torch>=2.0",
+    "torchvision",
+    "numpy",
+    "scipy",
+    "opencv-python",
+    "pillow",
+    "pyyaml",
+    "einops",
+    "matplotlib",
+    "scikit-image",
+    "torchmetrics",
+    "lpips",
+    "imageio",
+    "imageio-ffmpeg",
+    "psutil",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov"]
+app = ["gradio"]
+
+[tool.setuptools.packages.find]
+include = ["neural_painter*"]
+
+[tool.setuptools.package-data]
+neural_painter = ["configs/*.yaml", "assets/brushes/*.png"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

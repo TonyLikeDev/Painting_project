@@ -1,0 +1,34 @@
+# Oil paint brush. Matches renderer 'oilpaintbrush' in the original repository.
+name: oilpaintbrush
+display_name: Oil paint brush
+description: >
+  Textured elliptical patch. The brush texture PNG is scaled to (w, h), rotated by
+  theta and translated to (xc, yc). Colour is a gradient from (r0, g0, b0) at one end
+  of the brush to (r2, g2, b2) at the other. The alpha parameter is carried for a
+  uniform interface, but the rasterizer and the neural renderer force it to 1.
+param_names: [xc, yc, w, h, theta, r0, g0, b0, r2, g2, b2, alpha]
+shape_dim: 5
+color_dim: 6
+alpha_dim: 1
+layout:
+  x_params: [xc]
+  y_params: [yc]
+  size_params: [w, h]
+default_canvas_color: white
+renderer:
+  checkpoint_full: checkpoints_G_oilpaintbrush
+  checkpoint_light: checkpoints_G_oilpaintbrush_light
+  net_full: zou-fusion-net
+  net_light: zou-fusion-net-light
+  alpha_forced_to_one: true
+  out_size_full: 128
+  out_size_light: 32
+sampler:
+  # ranges used when a new stroke is initialized from the error map (Week 5)
+  size_range: [0.1, 0.25]
+  theta_range: [0.0, 1.0]
+  alpha_range: [0.98, 1.0]
+defaults:
+  max_strokes: 500
+  max_divide: 5
+  lr: 0.002
