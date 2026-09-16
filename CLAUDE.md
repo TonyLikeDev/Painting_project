@@ -82,8 +82,10 @@ venv/                      local virtual environment (git-ignored)
 1. Open `ROADMAP.md`, take the next open item of the current week.
 2. Build it, test it (`venv/Scripts/python -m pytest -q`), record any measurement
    under `experiments/`, and put any prose under `report/`.
-3. Tick the item in `ROADMAP.md`, add a change-log line, commit with a message
-   that names the week and the item.
+3. Tick the item in `ROADMAP.md`, add a change-log line, run
+   `venv/Scripts/python.exe scripts/roadmap_progress.py` to refresh the progress
+   bars at the top of the roadmap, and commit with a message that names the week
+   and the item.
 4. If something in the plan turns out to be wrong, say so in `ROADMAP.md`
    under the week's "Notes and deviations" and only then change `RESEARCH_PLAN.md`.
 
