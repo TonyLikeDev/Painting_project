@@ -10,7 +10,7 @@ Short version of the rules:
   `ROADMAP.md` and add a change-log line every time something is finished.
 - Use the project virtual environment: `venv/Scripts/python.exe` on Windows,
   `venv/bin/python` on macOS.
-- Run `pytest` before committing code under `neural_painter/`.
+- Run `pytest` before code under `neural_painter/` is committed. Never commit or push yourself and never add AI co-author lines; see the Git rules in CLAUDE.md.
 - Keep the procedural rasterizer pixel-identical to the original 2021 code.
 - Stroke parameters live in `[0, 1]` with layouts defined in `neural_painter/configs/*.yaml`.
 - Measurements go to `experiments/`, prose goes to `report/`, both seeded and dated.

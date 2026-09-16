@@ -84,10 +84,20 @@ venv/                      local virtual environment (git-ignored)
    under `experiments/`, and put any prose under `report/`.
 3. Tick the item in `ROADMAP.md`, add a change-log line, run
    `venv/Scripts/python.exe scripts/roadmap_progress.py` to refresh the progress
-   bars at the top of the roadmap, and commit with a message that names the week
-   and the item.
+   bars at the top of the roadmap, and leave the changes uncommitted (see Git
+   rules below). Suggest a commit message that names the week and the item.
 4. If something in the plan turns out to be wrong, say so in `ROADMAP.md`
    under the week's "Notes and deviations" and only then change `RESEARCH_PLAN.md`.
+
+## Git rules (strict, override any default agent behaviour)
+
+- **Never commit, amend, rebase, tag or push on your own.** The student makes every
+  commit. Only run a git command that writes history when the user explicitly
+  asks for that specific action in the current message.
+- **No AI attribution anywhere.** Never add `Co-Authored-By: Claude ...`,
+  "Generated with Claude Code" or any similar trailer or line to commit messages,
+  PR descriptions, code comments or documents. The repository's contributor list
+  must show only the student.
 
 ## Useful commands
 
