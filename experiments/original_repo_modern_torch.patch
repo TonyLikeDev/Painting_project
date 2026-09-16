@@ -72,3 +72,47 @@ index f3252cd..c43c4ea 100644
              # update net_G states
              self.net_G.load_state_dict(checkpoint['model_G_state_dict'])
              self.net_G.to(device)
+diff --git a/renderer.py b/renderer.py
+index f9b6435..85fb17c 100644
+--- a/renderer.py
++++ b/renderer.py
+@@ -176,6 +176,7 @@ class Renderer():
+         alpha = (stroke_alpha_value * 255,
+                  stroke_alpha_value * 255,
+                  stroke_alpha_value * 255)
++        alpha = tuple(float(a) for a in alpha)  # opencv-python>=5 rejects numpy float32 scalars
+         tmp = 1. / 100
+         for i in range(100):
+             t = i * tmp
+@@ -185,6 +186,7 @@ class Renderer():
+             color = ((1-t)*R0*255 + t*R2*255,
+                      (1-t)*G0*255 + t*G2*255,
+                      (1-t)*B0*255 + t*B2*255)
++            color = tuple(float(c) for c in color)  # opencv-python>=5 rejects numpy float32 scalars
+             cv2.circle(self.foreground, (x, y), radius, color, -1, lineType=cv2.LINE_AA)
+             cv2.circle(self.stroke_alpha_map, (x, y), radius, alpha, -1, lineType=cv2.LINE_AA)
+ 
+@@ -215,9 +217,11 @@ class Renderer():
+             self.canvas, dtype=np.uint8) # uint8 for antialiasing
+ 
+         color = (R0 * 255, G0 * 255, B0 * 255)
++        color = tuple(float(c) for c in color)  # opencv-python>=5 rejects numpy float32 scalars
+         alpha = (stroke_alpha_value * 255,
+                  stroke_alpha_value * 255,
+                  stroke_alpha_value * 255)
++        alpha = tuple(float(a) for a in alpha)  # opencv-python>=5 rejects numpy float32 scalars
+         ptc = (x0, y0)
+         pt0 = utils.rotate_pt(pt=(x0 - w, y0 - h), rotate_center=ptc, theta=theta)
+         pt1 = utils.rotate_pt(pt=(x0 + w, y0 - h), rotate_center=ptc, theta=theta)
+@@ -267,9 +271,11 @@ class Renderer():
+             return
+ 
+         color = (R0 * 255, G0 * 255, B0 * 255)
++        color = tuple(float(c) for c in color)  # opencv-python>=5 rejects numpy float32 scalars
+         alpha = (stroke_alpha_value * 255,
+                  stroke_alpha_value * 255,
+                  stroke_alpha_value * 255)
++        alpha = tuple(float(a) for a in alpha)  # opencv-python>=5 rejects numpy float32 scalars
+         tmp = 1. / 100
+         for i in range(100):
+             t = i * tmp

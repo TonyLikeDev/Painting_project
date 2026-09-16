@@ -1,0 +1,5 @@
+profile,brush,image,canvas_color,seed,max_strokes,max_divide,net_G,wall_time_s,final_G_loss,final_step_acc,commit,date
+cuda,oilpaintbrush,./test_images/apple.jpg,white,0,500,5,zou-fusion-net-light,71.4,0.05062,22.04271,c9d0528,2026-09-16
+cuda,markerpen,./test_images/apple.jpg,black,0,500,5,zou-fusion-net-light,56.4,0.13856,14.01817,c9d0528,2026-09-16
+cuda,watercolor,./test_images/apple.jpg,white,0,500,5,zou-fusion-net-light,63.2,0.04904,22.44767,c9d0528,2026-09-16
+cuda,rectangle,./test_images/apple.jpg,black,0,500,5,zou-fusion-net-light,60.2,0.04630,22.71255,c9d0528,2026-09-16

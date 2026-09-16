@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="800" viewBox="0 0 1240 800" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#37474f"/>
+    </marker>
+    <marker id="arrowGrad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c62828"/>
+    </marker>
+    <style>
+      .box   { stroke-width: 1.6; rx: 8; }
+      .lbl   { font-size: 14px; fill: #102027; font-weight: 600; }
+      .sub   { font-size: 11.5px; fill: #46606d; }
+      .tiny  { font-size: 10.5px; fill: #78909c; }
+      .edge  { stroke: #37474f; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .grad  { stroke: #c62828; stroke-width: 2; fill: none; marker-end: url(#arrowGrad); stroke-dasharray: 7 4; }
+      .gradlbl { font-size: 12px; fill: #c62828; font-weight: 600; }
+      .title { font-size: 17px; fill: #102027; font-weight: 700; }
+      .phase { font-size: 12.5px; fill: #607d8b; font-weight: 700; letter-spacing: 0.08em; }
+      .eq    { font-size: 13px; fill: #1b3a4b; font-weight: 600; }
+      .th    { font-size: 11.5px; fill: #37474f; font-weight: 700; }
+      .td    { font-size: 11.5px; fill: #455a64; font-family: Consolas, monospace; }
+    </style>
+  </defs>
+
+  <rect width="1240" height="800" fill="#ffffff"/>
+  <text x="32" y="40" class="title">Neural renderer G&#966;: FusionNet architecture (full variant, 128 &#215; 128 output)</text>
+  <text x="32" y="60" class="sub">The shape branch sees only the geometry parameters; the colour branch sees all of &#952;. Fusion multiplies the two. &#8857; is the element-wise product.</text>
+
+  <!-- input -->
+  <rect class="box" x="72" y="96" width="180" height="118" fill="#f3e5f5" stroke="#ab47bc"/>
+  <text x="162" y="122" class="lbl" text-anchor="middle">Stroke parameters &#952;</text>
+  <text x="162" y="142" class="sub" text-anchor="middle">tensor (N, d, 1, 1), values in [0, 1]</text>
+  <text x="162" y="164" class="sub" text-anchor="middle">shape: first d&#8209;shape entries</text>
+  <text x="162" y="180" class="sub" text-anchor="middle">colour: next d&#8209;colour entries</text>
+  <text x="162" y="196" class="sub" text-anchor="middle">alpha &#945;: last entry</text>
+
+  <!-- shape branch -->
+  <text x="320" y="96" class="phase">SHAPE DECODER &#183; PixelShuffleNet, input &#952;[0 : d&#8209;shape]</text>
+  <rect x="320" y="108" width="612" height="128" rx="12" fill="#e3f2fd" stroke="#64b5f6" stroke-dasharray="6 5"/>
+
+  <rect class="box" x="338" y="132" width="158" height="86" fill="#ffffff" stroke="#64b5f6"/>
+  <text x="417" y="155" class="lbl" text-anchor="middle">MLP</text>
+  <text x="417" y="175" class="td" text-anchor="middle">d&#8209;shape &#8594; 512</text>
+  <text x="417" y="192" class="td" text-anchor="middle">512 &#8594; 1024 &#8594; 2048</text>
+  <text x="417" y="209" class="td" text-anchor="middle">2048 &#8594; 4096, ReLU</text>
+
+  <rect class="box" x="522" y="132" width="146" height="86" fill="#ffffff" stroke="#64b5f6"/>
+  <text x="595" y="157" class="lbl" text-anchor="middle">Reshape</text>
+  <text x="595" y="181" class="td" text-anchor="middle">4096 &#8594; 16 &#215; 16 &#215; 16</text>
+  <text x="595" y="203" class="sub" text-anchor="middle">channels &#215; H &#215; W</text>
+
+  <rect class="box" x="694" y="132" width="220" height="86" fill="#ffffff" stroke="#64b5f6"/>
+  <text x="804" y="154" class="lbl" text-anchor="middle">3 &#215; (Conv 3&#215;3 + PixelShuffle 2)</text>
+  <text x="804" y="175" class="td" text-anchor="middle">16&#8594;32&#8594;32 &#8658; 8 ch, 32&#215;32</text>
+  <text x="804" y="192" class="td" text-anchor="middle">8&#8594;16&#8594;16 &#8658; 4 ch, 64&#215;64</text>
+  <text x="804" y="209" class="td" text-anchor="middle">4&#8594;8&#8594;12 &#8658; 3 ch, 128&#215;128</text>
+
+  <line class="edge" x1="496" y1="175" x2="516" y2="175"/>
+  <line class="edge" x1="668" y1="175" x2="688" y2="175"/>
+
+  <rect class="box" x="960" y="132" width="150" height="86" fill="#e1f5fe" stroke="#0288d1"/>
+  <text x="1035" y="158" class="lbl" text-anchor="middle">Mask M</text>
+  <text x="1035" y="178" class="sub" text-anchor="middle">(N, 3, 128, 128)</text>
+  <text x="1035" y="196" class="sub" text-anchor="middle">stroke silhouette</text>
+  <line class="edge" x1="914" y1="175" x2="954" y2="175"/>
+
+  <!-- colour branch -->
+  <text x="320" y="292" class="phase">COLOUR DECODER &#183; DCGAN generator, input the full &#952;</text>
+  <rect x="320" y="304" width="612" height="128" rx="12" fill="#e8f5e9" stroke="#66bb6a" stroke-dasharray="6 5"/>
+
+  <rect class="box" x="338" y="328" width="158" height="86" fill="#ffffff" stroke="#66bb6a"/>
+  <text x="417" y="351" class="lbl" text-anchor="middle">ConvT 4&#215;4, stride 1</text>
+  <text x="417" y="372" class="td" text-anchor="middle">d &#8594; 512</text>
+  <text x="417" y="391" class="sub" text-anchor="middle">1&#215;1 &#8594; 4&#215;4</text>
+  <text x="417" y="406" class="tiny" text-anchor="middle">BatchNorm + ReLU</text>
+
+  <rect class="box" x="522" y="328" width="146" height="86" fill="#ffffff" stroke="#66bb6a"/>
+  <text x="595" y="351" class="lbl" text-anchor="middle">4 &#215; ConvT 4&#215;4/2</text>
+  <text x="595" y="372" class="td" text-anchor="middle">512&#8594;512&#8594;256</text>
+  <text x="595" y="389" class="td" text-anchor="middle">256&#8594;128&#8594;64</text>
+  <text x="595" y="406" class="sub" text-anchor="middle">4&#215;4 &#8594; 64&#215;64</text>
+
+  <rect class="box" x="694" y="328" width="220" height="86" fill="#ffffff" stroke="#66bb6a"/>
+  <text x="804" y="351" class="lbl" text-anchor="middle">ConvT 4&#215;4/2 &#8594; 6 channels</text>
+  <text x="804" y="372" class="td" text-anchor="middle">64 &#8594; 6, 64&#215;64 &#8594; 128&#215;128</text>
+  <text x="804" y="391" class="sub" text-anchor="middle">the first 3 channels are the colour,</text>
+  <text x="804" y="406" class="sub" text-anchor="middle">the other 3 are discarded</text>
+
+  <line class="edge" x1="496" y1="371" x2="516" y2="371"/>
+  <line class="edge" x1="668" y1="371" x2="688" y2="371"/>
+
+  <rect class="box" x="960" y="328" width="150" height="86" fill="#e8f5e9" stroke="#2e7d32"/>
+  <text x="1035" y="354" class="lbl" text-anchor="middle">Colour patch</text>
+  <text x="1035" y="374" class="sub" text-anchor="middle">(N, 3, 128, 128)</text>
+  <text x="1035" y="392" class="sub" text-anchor="middle">gradient along the stroke</text>
+  <line class="edge" x1="914" y1="371" x2="954" y2="371"/>
+
+  <!-- input fan-out -->
+  <path class="edge" d="M 252 145 L 284 145 L 284 175 L 314 175" fill="none"/>
+  <path class="edge" d="M 252 182 L 302 182 L 302 371 L 314 371" fill="none"/>
+
+  <!-- light variant -->
+  <text x="72" y="292" class="phase">LIGHT VARIANT</text>
+  <rect x="72" y="304" width="196" height="164" rx="12" fill="#fafafa" stroke="#b0bec5"/>
+  <text x="88" y="326" class="sub">32 &#215; 32 output</text>
+  <text x="88" y="348" class="th">Shape decoder</text>
+  <text x="88" y="367" class="td">d&#8209;shape&#8594;512&#8594;1024&#8594;2048</text>
+  <text x="88" y="384" class="td">view 8&#215;16&#215;16, conv 8&#8594;64&#8594;12</text>
+  <text x="88" y="401" class="td">1 &#215; PixelShuffle &#8658; 3&#215;32&#215;32</text>
+  <text x="88" y="424" class="th">Colour decoder</text>
+  <text x="88" y="443" class="td">ConvT d&#8594;512&#8594;256&#8594;128&#8594;6</text>
+  <text x="88" y="460" class="tiny">about 3&#215; faster, fits a 4 GB GPU</text>
+
+  <!-- fusion -->
+  <text x="820" y="458" class="phase">FUSION</text>
+  <rect class="box" x="820" y="470" width="290" height="130" fill="#fff8e1" stroke="#ffa000"/>
+  <text x="965" y="496" class="lbl" text-anchor="middle">Fusion</text>
+  <text x="965" y="524" class="eq" text-anchor="middle">F&#770; = colour &#8857; M</text>
+  <text x="965" y="550" class="eq" text-anchor="middle">A&#770; = &#945; &#8857; M</text>
+  <text x="965" y="574" class="sub" text-anchor="middle">&#945; is the last entry of &#952;;</text>
+  <text x="965" y="590" class="sub" text-anchor="middle">for the oil brush it is forced to 1 (opaque)</text>
+
+  <line class="edge" x1="1035" y1="414" x2="1035" y2="464"/>
+  <path class="edge" d="M 1110 175 L 1160 175 L 1160 535 L 1116 535" fill="none"/>
+  <text x="1172" y="350" class="sub" transform="rotate(-90 1172 350)" text-anchor="middle">mask M</text>
+
+  <!-- output -->
+  <rect class="box" x="820" y="650" width="290" height="110" fill="#ede7f6" stroke="#7e57c2"/>
+  <text x="965" y="676" class="lbl" text-anchor="middle">Renderer output</text>
+  <text x="965" y="698" class="sub" text-anchor="middle">foreground F&#770; and alpha A&#770;, both (N, 3, 128, 128)</text>
+  <text x="965" y="718" class="sub" text-anchor="middle">fed to the differentiable canvas:</text>
+  <text x="965" y="742" class="eq" text-anchor="middle">C&#8342; = A&#770; &#8857; F&#770; + (1 &#8722; A&#770;) &#8857; C&#8342;&#8331;&#8321;</text>
+  <line class="edge" x1="965" y1="600" x2="965" y2="644"/>
+
+  <!-- training annotation -->
+  <rect x="320" y="470" width="450" height="130" rx="12" fill="#fafafa" stroke="#b0bec5"/>
+  <text x="340" y="496" class="lbl">Training (Week 4)</text>
+  <text x="340" y="518" class="sub">Targets come from the procedural rasterizer in train mode: uniform</text>
+  <text x="340" y="535" class="sub">&#952; &#8764; U(0, 1) rasterized on the fly, no dataset stored on disk.</text>
+  <text x="340" y="552" class="sub">Loss: L1 (plus SSIM or cosine) on F&#770; and A&#770;. Adam, batch 64 on the</text>
+  <text x="340" y="569" class="sub">RTX 3070. Validation: PSNR / SSIM on 1,000 held-out strokes.</text>
+  <text x="340" y="590" class="tiny">pipeline/train_renderer.py &#183; the original pretrained checkpoints load through the same interface</text>
+
+  <!-- gradient -->
+  <path class="grad" d="M 820 706 L 44 706 L 44 155 L 66 155"/>
+  <text x="440" y="694" class="gradlbl" text-anchor="middle">&#8706;L/&#8706;&#952; &#183; every operation above is differentiable, so pixel errors reach the stroke parameters</text>
+</svg>

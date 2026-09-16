@@ -1,0 +1,10 @@
+profile cuda
+torch 2.11.0+cu128
+python 3.11.9
+platform Windows-10-10.0.26200-SP0
+cpu_count 16
+torch_threads 10
+cuda_available True
+gpu NVIDIA GeForce RTX 3070
+cuda 12.8
+cudnn 91900
