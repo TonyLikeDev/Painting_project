@@ -1,7 +1,7 @@
 # Week 4: Differentiable renderer and basic stroke model
 
-Status mirror of `ROADMAP.md`. Date 2026-10-02. The desktop work is complete;
-the MacBook validation run remains a user action.
+Status mirror of `ROADMAP.md`. Date 2026-10-02. The desktop work and the MacBook
+device check are complete; the MacBook results still have to be committed and pushed.
 
 ## Build
 
@@ -21,8 +21,9 @@ the MacBook validation run remains a user action.
 - [x] Added renderer tests covering output shapes and ranges, alpha handling,
   finite-difference gradients, checkpoint equivalence, safe loading and round
   trips.
-- [ ] Run `scripts/device_check.py` on the MacBook and record the MPS smoke-test
-  results.
+- [x] Ran `scripts/device_check.py` on the MacBook (`mps`, Python 3.14.4, torch
+  2.14.0): all five steps ok, 136 tests passed and 8 skipped, results in
+  `2026-10-02_check_darwin_arm64_mps`.
 
 ## Measure
 
@@ -37,6 +38,12 @@ the MacBook validation run remains a user action.
   compared with 0.944 and 0.920 for the original.
 - [x] Measured desktop light-renderer cost: 1.2 ms forward and 2.6 ms forward plus
   backward on CUDA, with 0.09 GB peak tensor memory.
+- [x] Measured MacBook (Apple M4) light-renderer cost for 64 strokes: 17.3 ms forward
+  and 25.8 ms forward plus backward on `mps`, 22.8 and 126.0 ms on the CPU with 4
+  threads. The 2-epoch training smoke test ran at 1,316 strokes per second on `mps`
+  (epoch 2 of 3,200 strokes: 2.4 s); its 12.72 dB is a smoke-test value, not a
+  quality result. The `full` renderer rows are missing because its checkpoint is not
+  on the MacBook.
 - [x] Identified the procedural rasterizer as the training bottleneck: about
   2.1 ms per oil stroke on one core. Threaded generation reached about 1,600
   strokes per second during training; worker processes exhausted Windows commit
@@ -57,7 +64,12 @@ the MacBook validation run remains a user action.
 - [x] Oil renderer checkpoint saved.
 - [x] Fidelity table completed for the original renderers and the retrained oil
   renderer.
-- [~] Cross-device validation is incomplete until the MacBook MPS check is run.
+- [x] Cross-device validation: the suite passes on the MacBook (Python 3.14.4, torch
+  2.14.0, arm64; the tests themselves run on the CPU), and the renderer benchmark and
+  the 2-epoch training smoke test run on `mps`. Seven of the 8 skipped tests are the
+  checkpoint-equivalence tests for pretrained checkpoints that are not on the
+  MacBook, the eighth is the alpha-dependence test of the full oil renderer; all pass
+  on the desktop, where the eight checkpoints are present.
 
 ## Notes and deviations
 

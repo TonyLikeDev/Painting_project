@@ -1,0 +1,113 @@
+{
+  "created": "2026-10-02T14:11:36",
+  "environment": {
+    "ok": true,
+    "seconds": 5.5,
+    "device": "mps",
+    "summary": {
+      "device": "mps",
+      "torch": "2.14.0",
+      "python": "3.14.4",
+      "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+      "machine": "arm64"
+    },
+    "commit": "543777c",
+    "dirty": false,
+    "cuda_available": false,
+    "mps_available": true,
+    "cpu_threads": 4,
+    "reference_checkout": true,
+    "pretrained_checkpoints": {
+      "oilpaintbrush": false,
+      "oilpaintbrush_light": true,
+      "watercolor": false,
+      "watercolor_light": false,
+      "markerpen": false,
+      "markerpen_light": false,
+      "rectangle": false,
+      "rectangle_light": false
+    }
+  },
+  "dependencies": {
+    "ok": true,
+    "seconds": 9.9,
+    "versions": {
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "opencv-python": "5.0.0.93",
+      "pillow": "12.3.0",
+      "pyyaml": "6.0.3",
+      "einops": "0.8.2",
+      "matplotlib": "3.11.1",
+      "scikit-image": "0.26.0",
+      "torchmetrics": "1.9.0",
+      "lpips": "0.1.4",
+      "imageio": "2.37.4",
+      "imageio-ffmpeg": "0.6.0",
+      "psutil": "7.2.2",
+      "pytest": "9.1.1",
+      "gradio": "6.29.0"
+    },
+    "missing_required": [],
+    "ffmpeg": "/Users/tony/Documents/Painting_project/venv/lib/python3.14/site-packages/imageio_ffmpeg/binaries/ffmpeg-macos-aarch64-v7.1"
+  },
+  "tests": {
+    "ok": true,
+    "seconds": 14.7,
+    "returncode": 0,
+    "counts": {
+      "passed": 136,
+      "skipped": 8
+    },
+    "skipped_reasons": [
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_markerpen/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_markerpen_light/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_oilpaintbrush/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_rectangle/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_rectangle_light/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_watercolor/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_watercolor_light/last_ckpt.pt has not been downloaded",
+      "tests/test_renderer.py:205: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_oilpaintbrush/last_ckpt.pt has not been downloaded"
+    ],
+    "tail": "........................................................................ [ 50%]\n.......................sssssss.s........................................ [100%]\n=========================== short test summary info ============================\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_oilpaintbrush/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_watercolor_light/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_watercolor/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_markerpen_light/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_markerpen/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_rectangle_light/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:185: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_rectangle/last_ckpt.pt has not been downloaded\nSKIPPED [1] tests/test_renderer.py:205: /Users/tony/Documents/Painting_project/stylized-neural-painting/checkpoints_G_oilpaintbrush/last_ckpt.pt has not been downloaded\n136 passed, 8 skipped in 13.73s"
+  },
+  "renderers": {
+    "ok": true,
+    "seconds": 5.0,
+    "rows": [
+      {
+        "device": "mps",
+        "renderer": "oilpaintbrush light",
+        "forward_ms": 17.291649999970105,
+        "forward_backward_ms": 25.772360399423633,
+        "peak_memory_gb": 0.1121063232421875
+      },
+      {
+        "device": "mps",
+        "renderer": "oilpaintbrush full",
+        "skipped": "checkpoint not downloaded"
+      },
+      {
+        "device": "cpu",
+        "renderer": "oilpaintbrush light",
+        "forward_ms": 22.837908349902136,
+        "forward_backward_ms": 126.04884795000542,
+        "peak_memory_gb": null
+      },
+      {
+        "device": "cpu",
+        "renderer": "oilpaintbrush full",
+        "skipped": "checkpoint not downloaded"
+      }
+    ]
+  },
+  "training": {
+    "ok": true,
+    "seconds": 7.6,
+    "device": "mps",
+    "psnr_mean_after_2_short_epochs": 12.720922470092773,
+    "epoch2_line": "epoch   2/2 | loss  6.86582 | psnr fg 15.94 alpha  9.50 mean 12.72* | ssim 0.288/0.009 | lr 2.0e-04 |    2.4 s |    1316 strokes/s"
+  }
+}

@@ -187,8 +187,11 @@ for 64 strokes, with the clock read only after the device has finished (Table 4.
 21 MB (light) and 72 MB (full) in float32, which is all a laptop has to hold.
 
 **Table 4.4.** Cost of 64 strokes through the oil renderers. The `cuda` rows come from experiment
-`2026-10-02_fidelity_week4`; the `cpu` rows were measured separately on the idle desktop with 10
-threads. Peak memory is the largest amount of tensor memory allocated on the device.
+`2026-10-02_fidelity_week4`; the desktop `cpu` rows were measured separately on the idle desktop with 10
+threads; the Apple M4 rows come from one run of `scripts/device_check.py`
+(`2026-10-02_check_darwin_arm64_mps`, 4 CPU threads). Peak memory is the largest amount of tensor memory
+allocated on the device. † On `mps` PyTorch has no peak counter: the figure is the memory the Metal driver
+had allocated to the process when the run ended, so it is not comparable with the CUDA column.
 
 | Device | Renderer | Parameters (M) | Forward (ms) | Forward + backward (ms) | Peak memory (GB) |
 | :--- | :--- | ---: | ---: | ---: | ---: |
@@ -196,10 +199,16 @@ threads. Peak memory is the largest amount of tensor memory allocated on the dev
 | `cuda` (RTX 3070) | full | 18.09 | 7.6 | 15.6 | 0.50 |
 | `cpu` (i5-13400F) | light | 5.37 | 20.8 | 43.8 | - |
 | `cpu` (i5-13400F) | full | 18.09 | 155.8 | 291.9 | - |
-| `mps` (Apple M4) | light, full | | | | *pending: MacBook run of `scripts/device_check.py`* |
+| `mps` (Apple M4) | light | 5.37 | 17.3 | 25.8 | 0.11 † |
+| `cpu` (Apple M4) | light | 5.37 | 22.8 | 126.0 | - |
+| `mps`, `cpu` (Apple M4) | full | 18.09 | | | *pending: the full checkpoint is not on the MacBook* |
 
 The light renderer is six to seven times cheaper than the full one on both devices, and the GPU is
 17 to 19 times faster than the CPU for either. The second number is worth setting beside the Week 1
 baseline, in which the whole original pipeline, light renderer included, ran only 2.6 times faster
 on the GPU than on the CPU. Taken together they suggest that the renderer itself is not where most
-of the wall time goes; the work around it is.
+of the wall time goes; the work around it is. On the M4 the GPU's advantage is smaller: for the light
+renderer it is 4.9 times in forward plus backward and only 1.3 times in the forward pass, against 2.1
+times for the whole pipeline in the Week 1 baseline on the same machine. The M4 GPU is also 10 to 14
+times slower than the RTX 3070 on this renderer (forward plus backward 25.8 against 2.6 ms, forward
+17.3 against 1.2 ms).
