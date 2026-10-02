@@ -35,21 +35,52 @@ RAW_PHOTOS = ROOT / "data" / "raw_photos"
 EVAL_SET = ROOT / "data" / "eval_set"
 MANIFEST = EVAL_SET / "manifest.csv"
 DATASET_MD = ROOT / "experiments" / "dataset.md"
+RAW_MAX_PIXELS = 100_000_000  # camera originals exceed image_io's 40 MP upload guard; this script runs offline
 
-# short content tags for the report table (repo images only; user photos get "user photo")
+# short content tags for the report table, by file stem (long hash-style names by their first 12 characters);
+# a photo without an entry gets the generic tag below
 TAGS = {
-    "alien": "toy figure, saturated colours, studio background",
-    "apple": "still life, single object on white",
-    "cube2": "Rubik's cube, flat colour regions, sharp edges",
-    "diamond": "gem on dark background, specular highlights",
-    "diamond2": "gem, second view, dark background",
+    # the 11 images of the original repository
+    "alien": "creature figure, dark glossy surfaces, white background",
+    "apple": "still life, red apples in a wooden crate, wood texture",
+    "cube2": "translucent coloured cubes, flat colour regions, sharp edges, white background",
+    "diamond": "faceted gem on dark background, specular highlights",
+    "diamond2": "glass block with iridescent edges, black background",
     "fire": "flames, high-frequency texture, dark background",
-    "iceland": "landscape, sky and water, low-frequency regions",
-    "jay": "bird, fine feather texture",
+    "iceland": "landscape, waterfall and mountain at sunset, sky and water",
+    "jay": "portrait, face and hand, dark hair, shallow depth of field",
     "joker": "face / portrait, painted make-up",
-    "sunflowers": "painting (van Gogh), dense texture",
-    "yosemite": "landscape, rock and trees",
+    "sunflowers": "sunflowers in a basket, saturated yellow, blurred background",
+    "yosemite": "landscape, rock face, waterfall and trees",
+    # the self-collected photos
+    "51e3d4424d53": "minimal still life, pink balloon and white chair, flat pale background",
+    "53e2d3464b5b": "urban scene, cafe chairs and tables, repeated geometric forms",
+    "53e8d44b4253": "colour pencils in a radial pattern, saturated colours, sharp tips",
+    "54e2d3424c54": "macro still life, daisy and pencils, shallow depth of field",
+    "54e4dd474257": "stacked crates, dense saturated colour blocks, high-frequency texture",
+    "54e9d14b4e52": "animal, kitten in grass and daisies, shallow depth of field",
+    "55e4d4414a50": "dandelion seed on dark background, thin structures, reflection",
+    "57e3d6464e55": "black-and-white checkerboard with a drain and water, high contrast",
+    "57e4d0404d5b": "cactus, repeated spines, green high-frequency texture",
+    "57e4d1474e5b": "food still life, cereal bowl and spoon, warm colours",
+    "57e5dd464d54": "people on a vintage motorbike, faded retro colour grading",
+    "57e8d7414852": "abstract stacked paper layers, green and yellow diagonal bands",
+    "ca-si-bui-truong-linh-1": "studio portrait, person in a green jacket, flat yellow background",
+    "emily-lau-NVi2yab124g-unsplash": "outdoor portrait, tinted glasses, blurred background",
+    "ice-cream-cone-1274894_640": "still life, ice-cream cone, saturated blue background",
+    "maria-lysenko-3Bh0hy-yOcA-unsplash": "outdoor portrait, park background, shallow depth of field",
+    "pexels-beratorer-30650522": "macro flowers, yellow daisies, dark background",
+    "pexels-christina99999-38524143": "macro flowers, pink petals, fine detail",
+    "pexels-molnartamasphotography-29202983": "landscape, hazy hills and water, low contrast, low-frequency regions",
 }
+GENERIC_TAG = "self-collected photo"
+
+
+def tag_for(stem: str) -> str:
+    """The content tag of an image: exact stem, else a key of 12 or more characters that the stem starts with, else the generic tag."""
+    if stem in TAGS:
+        return TAGS[stem]
+    return next((tag for key, tag in TAGS.items() if len(key) >= 12 and stem.startswith(key)), GENERIC_TAG)
 
 
 def sha256(path: Path) -> str:
@@ -84,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
 
     rows = []
     for src, origin in sources:
-        img = image_io.load_image(src)
+        img = image_io.load_image(src, max_pixels=RAW_MAX_PIXELS)
         h, w = img.shape[:2]
         fitted, box = image_io.fit(img, args.size, "crop")
         out = image_io.save_image(EVAL_SET / f"{src.stem}.png", fitted)
@@ -99,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
                 "crop_box": " ".join(str(v) for v in box),
                 "size": args.size,
                 "sha256": sha256(out),
-                "tags": TAGS.get(src.stem, "user photo"),
+                "tags": tag_for(src.stem),
             }
         )
         print(f"{src.name:18s} {w}x{h} -> crop {box} -> {out.name}")
@@ -136,8 +167,10 @@ def main(argv: list[str] | None = None) -> int:
         "",
         "## Self-collected photos",
         "",
-        "Target: 10 to 20 photos covering portraits, landscapes, still life and high-texture scenes, taken or owned by the",
-        "student (no licensing issues in the report). Drop the originals into `data/raw_photos/` and rerun",
+        "Photographs gathered by the student to cover portraits, landscapes, still life and high-texture scenes (target: 10 to",
+        "20). They are not part of the original repository; each keeps the file name it was collected under (`source_file` in",
+        "the manifest). The originals are in `data/raw_photos/`; the frozen 512 x 512 PNGs in `data/eval_set/` are the dataset,",
+        "so results do not need the originals. To add photos, drop them into `data/raw_photos/` and rerun",
         "`scripts/freeze_dataset.py --force`; the repo images are re-generated byte-identically, so their hashes stay valid.",
         "This must happen before the Week 5 ablations start; after that the set is closed.",
         "",

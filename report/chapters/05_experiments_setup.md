@@ -114,9 +114,10 @@ images distributed with the reference implementation, which makes the comparison
 against the original system direct and lets a reader reproduce it from a public
 source. They already span a useful range of content: single objects on plain
 backgrounds, faces, landscapes, high-frequency texture, and flat regions with sharp
-edges. The second part is a set of self-collected photographs covering portraits,
-landscapes, still life and high-texture scenes, which tests the system on material
-the reference implementation was never tuned on.
+edges. The second part is a set of nineteen self-collected photographs covering
+portraits, landscapes, still life and high-texture scenes, which tests the system on
+material the reference implementation was never tuned on. The set has thirty images
+in all.
 
 Every image is centre-cropped to a square and resized to 512 x 512 with
 `INTER_AREA`, then written as a lossless PNG. Storing the set already preprocessed

@@ -10,19 +10,19 @@ Status mirror of ROADMAP.md (the roadmap is authoritative). Date 2026-09-16.
 - [x] `tests/test_rasterizer.py`, `test_image_io.py`, `test_grid.py`, `test_stroke_models.py`, `test_package_imports.py` — 81 tests pass
 
 ## Measure
-- [ ] evaluation set frozen — `data/eval_set/`, `experiments/dataset.md` (`scripts/freeze_dataset.py`)
+- [x] evaluation set frozen — `data/eval_set/`, `experiments/dataset.md` (`scripts/freeze_dataset.py`)
 
 ## Write
-- [ ] dataset and preprocessing subsection — `report/chapters/05_experiments_setup.md`, figure `report/figures/preprocessing_pipeline.png`
+- [x] dataset and preprocessing subsection — `report/chapters/05_experiments_setup.md`, figure `report/figures/preprocessing_pipeline.png`
 
 ## Exit criteria
 - [x] tests pass
 - [x] a random stroke of each brush renders through the procedural rasterizer, identical to the original code at 32 and 128 px, train and inference modes
-- [ ] dataset frozen
+- [x] dataset frozen (30 images: 11 repo + 19 self-collected)
 
 ## Notes and deviations
 - The rasterizer port is verified pixel-for-pixel against the original `renderer.py` (25 random strokes per
   brush / size / mode, plus a 40-stroke canvas sequence and the oil texture warp). This is what lets the
   pretrained renderers be reused unchanged in Week 4.
-- Self-collected photos are not yet in the set; the freeze script re-runs with `--force` to add them and
-  keeps the repo images byte-identical. Deadline: before the Week 5 ablations.
+- The 19 self-collected photos were added on 2026-10-02 by re-running the freeze script with `--force`; the repo
+  images stayed byte-identical (see `experiments/dataset.md`). The set is closed from the start of Week 5.

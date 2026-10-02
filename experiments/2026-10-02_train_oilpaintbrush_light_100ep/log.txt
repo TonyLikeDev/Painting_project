@@ -1,0 +1,132 @@
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 1..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch   1/100 | loss  4.47904 | psnr fg 21.08 alpha 14.86 mean 17.97* | ssim 0.779/0.718 | lr 2.0e-04 |   32.2 s |    1554 strokes/s
+epoch   2/100 | loss  1.91686 | psnr fg 21.47 alpha 15.41 mean 18.44* | ssim 0.809/0.759 | lr 2.0e-04 |   29.7 s |    1683 strokes/s
+epoch   3/100 | loss  1.75285 | psnr fg 22.05 alpha 15.83 mean 18.94* | ssim 0.823/0.770 | lr 2.0e-04 |   30.5 s |    1639 strokes/s
+epoch   4/100 | loss  1.52700 | psnr fg 22.88 alpha 16.62 mean 19.75* | ssim 0.850/0.801 | lr 2.0e-04 |   31.7 s |    1576 strokes/s
+epoch   5/100 | loss  1.26091 | psnr fg 23.71 alpha 17.50 mean 20.61* | ssim 0.874/0.832 | lr 2.0e-04 |   33.3 s |    1502 strokes/s
+epoch   6/100 | loss  1.05826 | psnr fg 24.13 alpha 18.01 mean 21.07* | ssim 0.882/0.847 | lr 2.0e-04 |   32.9 s |    1518 strokes/s
+epoch   7/100 | loss  0.93893 | psnr fg 24.62 alpha 18.57 mean 21.59* | ssim 0.898/0.868 | lr 2.0e-04 |   34.1 s |    1466 strokes/s
+epoch   8/100 | loss  0.87003 | psnr fg 24.86 alpha 18.81 mean 21.84* | ssim 0.904/0.877 | lr 2.0e-04 |   31.0 s |    1614 strokes/s
+epoch   9/100 | loss  0.82104 | psnr fg 25.07 alpha 19.04 mean 22.05* | ssim 0.908/0.883 | lr 2.0e-04 |   30.7 s |    1627 strokes/s
+epoch  10/100 | loss  0.77684 | psnr fg 25.20 alpha 19.20 mean 22.20* | ssim 0.911/0.887 | lr 2.0e-04 |   31.6 s |    1580 strokes/s
+epoch  11/100 | loss  0.74381 | psnr fg 25.31 alpha 19.26 mean 22.28* | ssim 0.913/0.888 | lr 2.0e-04 |   32.6 s |    1533 strokes/s
+epoch  12/100 | loss  0.72229 | psnr fg 25.42 alpha 19.37 mean 22.40* | ssim 0.916/0.893 | lr 2.0e-04 |   30.9 s |    1616 strokes/s
+epoch  13/100 | loss  0.69628 | psnr fg 25.59 alpha 19.58 mean 22.58* | ssim 0.919/0.898 | lr 2.0e-04 |   31.3 s |    1598 strokes/s
+epoch  14/100 | loss  0.67584 | psnr fg 25.79 alpha 19.80 mean 22.79* | ssim 0.923/0.903 | lr 2.0e-04 |   31.5 s |    1587 strokes/s
+epoch  15/100 | loss  0.66325 | psnr fg 25.93 alpha 19.92 mean 22.92* | ssim 0.925/0.905 | lr 2.0e-04 |   37.4 s |    1338 strokes/s
+epoch  16/100 | loss  0.65161 | psnr fg 25.93 alpha 19.94 mean 22.93* | ssim 0.925/0.906 | lr 2.0e-04 |   31.6 s |    1584 strokes/s
+epoch  17/100 | loss  0.63649 | psnr fg 25.80 alpha 19.91 mean 22.85  | ssim 0.924/0.905 | lr 2.0e-04 |   32.1 s |    1557 strokes/s
+epoch  18/100 | loss  0.62800 | psnr fg 26.02 alpha 20.08 mean 23.05* | ssim 0.927/0.908 | lr 2.0e-04 |   31.2 s |    1602 strokes/s
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 19..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch  19/100 | loss  0.61364 | psnr fg 26.25 alpha 20.31 mean 23.28* | ssim 0.930/0.913 | lr 2.0e-04 |   32.2 s |    1554 strokes/s
+epoch  20/100 | loss  0.60882 | psnr fg 26.32 alpha 20.37 mean 23.34* | ssim 0.932/0.915 | lr 2.0e-04 |   30.0 s |    1664 strokes/s
+epoch  21/100 | loss  0.59978 | psnr fg 26.18 alpha 20.22 mean 23.20  | ssim 0.930/0.912 | lr 2.0e-04 |   31.0 s |    1615 strokes/s
+epoch  22/100 | loss  0.59449 | psnr fg 26.35 alpha 20.38 mean 23.37* | ssim 0.932/0.915 | lr 2.0e-04 |   31.4 s |    1592 strokes/s
+epoch  23/100 | loss  0.58866 | psnr fg 26.23 alpha 20.31 mean 23.27  | ssim 0.931/0.914 | lr 2.0e-04 |   30.9 s |    1617 strokes/s
+epoch  24/100 | loss  0.58298 | psnr fg 26.27 alpha 20.26 mean 23.26  | ssim 0.932/0.913 | lr 2.0e-04 |   31.1 s |    1607 strokes/s
+epoch  25/100 | loss  0.58168 | psnr fg 26.32 alpha 20.42 mean 23.37* | ssim 0.932/0.916 | lr 2.0e-04 |   33.4 s |    1498 strokes/s
+epoch  26/100 | loss  0.52312 | psnr fg 26.88 alpha 20.89 mean 23.89* | ssim 0.940/0.924 | lr 2.0e-05 |   33.3 s |    1503 strokes/s
+epoch  27/100 | loss  0.52001 | psnr fg 26.94 alpha 20.95 mean 23.94* | ssim 0.941/0.925 | lr 2.0e-05 |   33.3 s |    1500 strokes/s
+epoch  28/100 | loss  0.51401 | psnr fg 26.92 alpha 20.94 mean 23.93  | ssim 0.941/0.925 | lr 2.0e-05 |   34.7 s |    1440 strokes/s
+epoch  29/100 | loss  0.51395 | psnr fg 26.96 alpha 20.97 mean 23.96* | ssim 0.941/0.926 | lr 2.0e-05 |   40.0 s |    1248 strokes/s
+epoch  30/100 | loss  0.51331 | psnr fg 26.94 alpha 20.95 mean 23.95  | ssim 0.941/0.925 | lr 2.0e-05 |   33.8 s |    1480 strokes/s
+epoch  31/100 | loss  0.51275 | psnr fg 26.98 alpha 20.97 mean 23.97* | ssim 0.941/0.926 | lr 2.0e-05 |   32.8 s |    1522 strokes/s
+epoch  32/100 | loss  0.51216 | psnr fg 26.97 alpha 20.97 mean 23.97  | ssim 0.941/0.926 | lr 2.0e-05 |   32.4 s |    1541 strokes/s
+epoch  33/100 | loss  0.51105 | psnr fg 26.96 alpha 20.98 mean 23.97  | ssim 0.942/0.926 | lr 2.0e-05 |   31.2 s |    1602 strokes/s
+stopping after epoch 33: the 8 minute budget is used up (resume with --resume)
+== done: best psnr_mean 23.97 dB, 8.3 min
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 34..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch  34/100 | loss  0.51138 | psnr fg 27.00 alpha 21.00 mean 24.00* | ssim 0.942/0.927 | lr 2.0e-05 |   31.3 s |    1595 strokes/s
+epoch  35/100 | loss  0.51052 | psnr fg 27.03 alpha 21.03 mean 24.03* | ssim 0.942/0.927 | lr 2.0e-05 |   28.7 s |    1739 strokes/s
+epoch  36/100 | loss  0.50714 | psnr fg 27.02 alpha 21.02 mean 24.02  | ssim 0.942/0.927 | lr 2.0e-05 |   28.8 s |    1734 strokes/s
+epoch  37/100 | loss  0.50730 | psnr fg 27.02 alpha 21.02 mean 24.02  | ssim 0.942/0.927 | lr 2.0e-05 |   29.9 s |    1671 strokes/s
+epoch  38/100 | loss  0.50780 | psnr fg 27.03 alpha 21.02 mean 24.03* | ssim 0.942/0.927 | lr 2.0e-05 |   29.7 s |    1684 strokes/s
+epoch  39/100 | loss  0.50524 | psnr fg 27.03 alpha 21.02 mean 24.02  | ssim 0.942/0.927 | lr 2.0e-05 |   29.6 s |    1687 strokes/s
+epoch  40/100 | loss  0.50266 | psnr fg 27.04 alpha 21.03 mean 24.03* | ssim 0.942/0.927 | lr 2.0e-05 |   29.6 s |    1691 strokes/s
+epoch  41/100 | loss  0.50564 | psnr fg 27.02 alpha 21.01 mean 24.01  | ssim 0.942/0.927 | lr 2.0e-05 |   29.5 s |    1697 strokes/s
+epoch  42/100 | loss  0.50456 | psnr fg 27.05 alpha 21.05 mean 24.05* | ssim 0.942/0.927 | lr 2.0e-05 |   29.8 s |    1675 strokes/s
+epoch  43/100 | loss  0.50246 | psnr fg 27.03 alpha 21.02 mean 24.02  | ssim 0.943/0.927 | lr 2.0e-05 |   29.8 s |    1677 strokes/s
+epoch  44/100 | loss  0.50225 | psnr fg 27.04 alpha 21.04 mean 24.04  | ssim 0.942/0.927 | lr 2.0e-05 |   29.7 s |    1681 strokes/s
+epoch  45/100 | loss  0.50095 | psnr fg 27.06 alpha 21.05 mean 24.05* | ssim 0.943/0.928 | lr 2.0e-05 |   29.6 s |    1687 strokes/s
+epoch  46/100 | loss  0.50175 | psnr fg 27.06 alpha 21.05 mean 24.06* | ssim 0.943/0.928 | lr 2.0e-05 |   30.0 s |    1667 strokes/s
+epoch  47/100 | loss  0.50276 | psnr fg 27.07 alpha 21.05 mean 24.06  | ssim 0.943/0.928 | lr 2.0e-05 |   29.6 s |    1690 strokes/s
+epoch  48/100 | loss  0.50377 | psnr fg 27.06 alpha 21.07 mean 24.06* | ssim 0.943/0.928 | lr 2.0e-05 |   29.9 s |    1672 strokes/s
+epoch  49/100 | loss  0.50166 | psnr fg 27.06 alpha 21.04 mean 24.05  | ssim 0.943/0.928 | lr 2.0e-05 |   29.7 s |    1680 strokes/s
+stopping after epoch 49: the 8 minute budget is used up (resume with --resume)
+== done: best psnr_mean 24.06 dB, 8.0 min
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 50..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch  50/100 | loss  0.50159 | psnr fg 27.07 alpha 21.05 mean 24.06  | ssim 0.943/0.928 | lr 2.0e-05 |   33.2 s |    1505 strokes/s
+epoch  51/100 | loss  0.49582 | psnr fg 27.13 alpha 21.12 mean 24.12* | ssim 0.944/0.929 | lr 2.0e-06 |   31.6 s |    1584 strokes/s
+epoch  52/100 | loss  0.49367 | psnr fg 27.13 alpha 21.12 mean 24.13* | ssim 0.944/0.929 | lr 2.0e-06 |   30.1 s |    1658 strokes/s
+epoch  53/100 | loss  0.49154 | psnr fg 27.12 alpha 21.12 mean 24.12  | ssim 0.944/0.929 | lr 2.0e-06 |   30.5 s |    1639 strokes/s
+epoch  54/100 | loss  0.49440 | psnr fg 27.14 alpha 21.13 mean 24.13* | ssim 0.944/0.929 | lr 2.0e-06 |   29.1 s |    1720 strokes/s
+epoch  55/100 | loss  0.49134 | psnr fg 27.14 alpha 21.13 mean 24.14* | ssim 0.944/0.929 | lr 2.0e-06 |   29.1 s |    1718 strokes/s
+epoch  56/100 | loss  0.49219 | psnr fg 27.14 alpha 21.13 mean 24.13  | ssim 0.944/0.929 | lr 2.0e-06 |   28.9 s |    1731 strokes/s
+epoch  57/100 | loss  0.49308 | psnr fg 27.14 alpha 21.13 mean 24.13  | ssim 0.944/0.929 | lr 2.0e-06 |   30.7 s |    1627 strokes/s
+epoch  58/100 | loss  0.49080 | psnr fg 27.15 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   30.5 s |    1639 strokes/s
+epoch  59/100 | loss  0.49255 | psnr fg 27.14 alpha 21.13 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   30.9 s |    1620 strokes/s
+epoch  60/100 | loss  0.49254 | psnr fg 27.14 alpha 21.13 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   30.8 s |    1621 strokes/s
+epoch  61/100 | loss  0.49076 | psnr fg 27.14 alpha 21.13 mean 24.13  | ssim 0.944/0.929 | lr 2.0e-06 |   31.5 s |    1589 strokes/s
+epoch  62/100 | loss  0.49032 | psnr fg 27.15 alpha 21.14 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   30.9 s |    1618 strokes/s
+epoch  63/100 | loss  0.49334 | psnr fg 27.15 alpha 21.13 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   32.7 s |    1529 strokes/s
+epoch  64/100 | loss  0.49292 | psnr fg 27.14 alpha 21.13 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   30.3 s |    1649 strokes/s
+epoch  65/100 | loss  0.49166 | psnr fg 27.15 alpha 21.14 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   28.7 s |    1743 strokes/s
+stopping after epoch 65: the 8 minute budget is used up (resume with --resume)
+== done: best psnr_mean 24.15 dB, 8.2 min
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 66..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch  66/100 | loss  0.49154 | psnr fg 27.15 alpha 21.13 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   31.0 s |    1612 strokes/s
+epoch  67/100 | loss  0.49175 | psnr fg 27.15 alpha 21.14 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   28.5 s |    1755 strokes/s
+epoch  68/100 | loss  0.49322 | psnr fg 27.15 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   29.4 s |    1698 strokes/s
+epoch  69/100 | loss  0.49118 | psnr fg 27.14 alpha 21.14 mean 24.14  | ssim 0.944/0.929 | lr 2.0e-06 |   29.9 s |    1671 strokes/s
+epoch  70/100 | loss  0.49268 | psnr fg 27.15 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   29.8 s |    1680 strokes/s
+epoch  71/100 | loss  0.49266 | psnr fg 27.15 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   30.6 s |    1633 strokes/s
+epoch  72/100 | loss  0.49170 | psnr fg 27.16 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   29.3 s |    1707 strokes/s
+epoch  73/100 | loss  0.49118 | psnr fg 27.16 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   28.8 s |    1738 strokes/s
+epoch  74/100 | loss  0.49057 | psnr fg 27.16 alpha 21.14 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-06 |   28.8 s |    1737 strokes/s
+epoch  75/100 | loss  0.49351 | psnr fg 27.15 alpha 21.14 mean 24.15  | ssim 0.944/0.929 | lr 2.0e-06 |   30.5 s |    1641 strokes/s
+epoch  76/100 | loss  0.49110 | psnr fg 27.16 alpha 21.15 mean 24.15* | ssim 0.944/0.929 | lr 2.0e-07 |   30.3 s |    1651 strokes/s
+epoch  77/100 | loss  0.49198 | psnr fg 27.16 alpha 21.15 mean 24.16* | ssim 0.944/0.929 | lr 2.0e-07 |   30.6 s |    1635 strokes/s
+epoch  78/100 | loss  0.49068 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   30.8 s |    1625 strokes/s
+epoch  79/100 | loss  0.49070 | psnr fg 27.16 alpha 21.15 mean 24.15  | ssim 0.944/0.929 | lr 2.0e-07 |   30.1 s |    1660 strokes/s
+epoch  80/100 | loss  0.49211 | psnr fg 27.17 alpha 21.15 mean 24.16* | ssim 0.944/0.929 | lr 2.0e-07 |   28.2 s |    1771 strokes/s
+epoch  81/100 | loss  0.49099 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   28.2 s |    1774 strokes/s
+epoch  82/100 | loss  0.49094 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   28.3 s |    1768 strokes/s
+stopping after epoch 82: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 24.16 dB, 8.5 min this session, 42.3 min of training in total
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 83..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch  83/100 | loss  0.49044 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   31.2 s |    1601 strokes/s
+epoch  84/100 | loss  0.49230 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   28.7 s |    1740 strokes/s
+epoch  85/100 | loss  0.49297 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.1 s |    1719 strokes/s
+epoch  86/100 | loss  0.49206 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.7 s |    1680 strokes/s
+epoch  87/100 | loss  0.49025 | psnr fg 27.15 alpha 21.15 mean 24.15  | ssim 0.944/0.929 | lr 2.0e-07 |   30.1 s |    1662 strokes/s
+epoch  88/100 | loss  0.49076 | psnr fg 27.16 alpha 21.15 mean 24.15  | ssim 0.944/0.929 | lr 2.0e-07 |   30.3 s |    1650 strokes/s
+epoch  89/100 | loss  0.49182 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   30.1 s |    1662 strokes/s
+epoch  90/100 | loss  0.48957 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.8 s |    1675 strokes/s
+epoch  91/100 | loss  0.49284 | psnr fg 27.16 alpha 21.15 mean 24.15  | ssim 0.944/0.929 | lr 2.0e-07 |   29.7 s |    1685 strokes/s
+epoch  92/100 | loss  0.49082 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.9 s |    1670 strokes/s
+epoch  93/100 | loss  0.49214 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.9 s |    1671 strokes/s
+epoch  94/100 | loss  0.49179 | psnr fg 27.17 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   30.0 s |    1664 strokes/s
+epoch  95/100 | loss  0.49179 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.9 s |    1671 strokes/s
+epoch  96/100 | loss  0.49030 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   30.0 s |    1669 strokes/s
+epoch  97/100 | loss  0.49071 | psnr fg 27.16 alpha 21.15 mean 24.16  | ssim 0.944/0.929 | lr 2.0e-07 |   29.9 s |    1671 strokes/s
+epoch  98/100 | loss  0.49175 | psnr fg 27.17 alpha 21.15 mean 24.16* | ssim 0.944/0.929 | lr 2.0e-07 |   29.8 s |    1680 strokes/s
+stopping after epoch 98: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 24.16 dB, 8.0 min this session, 50.2 min of training in total
+== oilpaintbrush_light_100ep on cuda:0 | oilpaintbrush light 32px | 5.37 M params | loss l2 | epochs 99..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-02_train_oilpaintbrush_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\oilpaintbrush_light_100ep
+epoch  99/100 | loss  0.49072 | psnr fg 27.14 alpha 21.15 mean 24.15  | ssim 0.944/0.929 | lr 2.0e-07 |   31.3 s |    1599 strokes/s
+epoch 100/100 | loss  0.49079 | psnr fg 27.17 alpha 21.15 mean 24.16* | ssim 0.944/0.929 | lr 2.0e-07 |   29.3 s |    1703 strokes/s
+== done: best psnr_mean 24.16 dB, 1.1 min this session, 51.2 min of training in total

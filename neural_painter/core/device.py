@@ -45,7 +45,7 @@ def device_summary(device: torch.device | None = None) -> dict[str, Any]:
     device = device or get_device()
     info: dict[str, Any] = {
         "device": str(device),
-        "torch": torch.__version__,
+        "torch": str(torch.__version__),  # a TorchVersion (str subclass), which YAML cannot represent
         "python": platform.python_version(),
         "platform": platform.platform(),
         "machine": platform.machine(),

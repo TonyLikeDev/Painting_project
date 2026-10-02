@@ -1,0 +1,17 @@
+{
+  "run": "oilpaintbrush_light_100ep",
+  "device": "cuda:0",
+  "epochs_done": 100,
+  "best_psnr_mean": 24.161067008972168,
+  "last": {
+    "psnr_fg": 27.16914176940918,
+    "psnr_alpha": 21.152992248535156,
+    "psnr_mean": 24.161067008972168,
+    "ssim_fg": 0.9441645741462708,
+    "ssim_alpha": 0.9293084740638733
+  },
+  "wall_seconds": 63.069898599991575,
+  "train_seconds_total": 3074.0863000000018,
+  "experiment_dir": "G:\\Github\\Painting_project\\experiments\\2026-10-02_train_oilpaintbrush_light_100ep",
+  "checkpoint_dir": "G:\\Github\\Painting_project\\checkpoints\\oilpaintbrush_light_100ep"
+}

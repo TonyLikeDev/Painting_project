@@ -1,0 +1,42 @@
+run: oilpaintbrush_light_100ep
+started: '2026-10-02T10:03:33'
+commit: 66decc2
+dirty: true
+device: cuda:0
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+gpu_name: NVIDIA GeForce RTX 3070
+cuda: '12.8'
+cudnn: 91900
+vram_gb: 8.0
+model:
+  brush: oilpaintbrush
+  light: true
+  out_size: 32
+  output_activation: sigmoid
+  parameters: 5366860
+  source:
+    format: untrained
+config:
+  brush: oilpaintbrush
+  light: true
+  epochs: 100
+  samples_per_epoch: 50000
+  batch_size: 64
+  lr: 0.0002
+  lr_step: 0
+  loss: l2
+  activation: sigmoid
+  device: auto
+  threads: 8
+  seed: 0
+  val_size: 1000
+  max_minutes: 0.0
+  vis_every: 10
+  name: oilpaintbrush_light_100ep
+  checkpoint_dir: ''
+  experiments_dir: ''
+  resume: false
+lr_step: 25

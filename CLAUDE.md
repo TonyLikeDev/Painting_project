@@ -55,6 +55,13 @@ venv/                      local virtual environment (git-ignored)
   is ever reset, re-apply `patch -p1 < ../experiments/original_repo_modern_torch.patch`.
 - No `pdftoppm`; read PDFs with `pypdf` (installed in the Windows Store Python, not the venv).
 - The Bash tool chokes on very long multi-heredoc commands; write big files with the Write tool.
+- The assistant's background shell is killed after 10 minutes, taking its child processes with it, and the
+  app's Terminal-panel integration does not load on this machine (`claude-desktop.ps1` is missing). Run long
+  jobs in bounded chunks (`train_renderer --max-minutes 8 --resume`, which continues the same run exactly) or ask
+  the student to start them in their own terminal.
+- Windows commit memory (RAM plus a 1 GB page file) is easily exhausted when several processes import torch:
+  eight DataLoader worker processes failed with an out-of-memory error. Long jobs use threads inside one process
+  (the rasterizer releases the GIL); see `SyntheticStrokes` in `pipeline/train_renderer.py`.
 
 ## Conventions that must not drift
 
@@ -103,6 +110,10 @@ venv/                      local virtual environment (git-ignored)
 
 ```
 venv/Scripts/python.exe -m pytest -q                       # test suite
+venv/Scripts/python.exe -m neural_painter.pipeline.train_renderer --brush oil --light --epochs 100   # train a renderer (--resume continues)
+venv/Scripts/python.exe scripts/renderer_fidelity.py       # score the pretrained (and --ours) renderers on the fixed held-out strokes
+venv/Scripts/python.exe scripts/plot_training_curve.py experiments/<run> --reference 24.38   # learning-curve figure for the report
+venv/Scripts/python.exe scripts/device_check.py            # install / tests / speed / training smoke check; run it on the MacBook
 venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available())"
 cd stylized-neural-painting && ../venv/Scripts/python.exe demo_prog.py --img_path ./test_images/apple.jpg \
   --canvas_color white --max_m_strokes 500 --max_divide 5 --renderer oilpaintbrush \

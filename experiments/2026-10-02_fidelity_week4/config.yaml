@@ -1,0 +1,21 @@
+created: '2026-10-02T11:07:46'
+commit: 66decc2
+dirty: true
+device: cuda
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+gpu_name: NVIDIA GeForce RTX 3070
+cuda: '12.8'
+cudnn: 91900
+vram_gb: 8.0
+n: 1000
+brushes:
+- oilpaintbrush
+- watercolor
+- markerpen
+- rectangle
+ours:
+- ours oil light=checkpoints\oilpaintbrush_light_100ep\best.pt
+original: true
