@@ -51,12 +51,29 @@ def test_device_check_report_shows_failures_and_skips():
             {"device": "mps", "renderer": "oilpaintbrush light", "forward_ms": 2.5, "forward_backward_ms": 5.0, "peak_memory_gb": 0.1},
             {"device": "cpu", "renderer": "oilpaintbrush full", "skipped": "checkpoint not downloaded"}]},
         "training": {"ok": True, "seconds": 60.0, "epoch2_line": "epoch   2/2 | loss 1.0"},
+        "painting": {"ok": True, "seconds": 40.0, "rows": [
+            {"loss": "pixel", "device": "mps", "strokes": 100, "steps": 500, "optimize_s": 12.3, "render_s": 1.5, "psnr": 17.5, "ssim": 0.41},
+            {"loss": "pixel + Sinkhorn", "device": "mps", "strokes": 100, "steps": 500, "optimize_s": 30.1, "render_s": 1.5, "psnr": 17.6, "ssim": 0.42}]},
     }
     md = device_check.report_markdown(results)
     assert "device: `mps`; Python 3.14.4; torch 2.14.0" in md
     assert "| tests | FAILED: pytest exited with 1 | 90.0 |" in md and "FAILED tests/test_x.py::test_y" in md
     assert "- a.py:1: why" in md and "| mps | oilpaintbrush light | 2.5 | 5.0 | 0.10 |" in md and "checkpoint not downloaded" in md
     assert "epoch   2/2" in md and "lpips 0.1.4" in md
+    assert "| pixel + Sinkhorn | mps | 100 | 500 | 30.1 | 1.5 | 17.6 | 0.42 |" in md and "Painting smoke test (apple, 5 x 5 grid)" in md
+    results["painting"] = {"ok": True, "seconds": 0.1, "skipped": "the pretrained light oil renderer or data/eval_set/apple.png is missing"}
+    assert "Skipped: the pretrained light oil renderer" in device_check.report_markdown(results)
+
+
+def test_device_check_paints_a_small_picture_with_both_losses():
+    device_check = load_script("device_check")
+    from neural_painter.models.neural_renderer import original_checkpoint_path
+
+    if not original_checkpoint_path("oilpaintbrush", light=True).is_file() or not (ROOT / "data" / "eval_set" / "apple.png").is_file():
+        pytest.skip("needs the pretrained light oil renderer and the evaluation image")
+    result = device_check.check_painting("cpu", strokes_per_block=2, iters_per_stroke=3)
+    assert [r["loss"] for r in result["rows"]] == ["pixel", "pixel + Sinkhorn"]
+    assert all(r["strokes"] == 50 and r["steps"] == 6 and r["device"] == "cpu" and r["psnr"] > 0 for r in result["rows"])  # 25 blocks x 2 strokes, 3 steps each
 
 
 def test_training_curve_plot_marks_learning_rate_drops(tmp_path):

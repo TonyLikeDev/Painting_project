@@ -1,0 +1,10 @@
+image,config,seed,grid,strokes,beta_ot,ot_epsilon,ot_iters,optimize_s,render_s,psnr,ssim,lpips,neural_psnr,steps_to_22db,steps_to_24db,device,renderer
+alien,grid5,0,5,500,0,0.01,5,7.32254,2.83973,18.4118,0.529194,,24.7602,260,390,cuda,original-light
+alien,grid5_ot,0,5,500,0.1,0.01,5,15.9369,2.63615,18.3833,0.5255,,24.765,261,405,cuda,original-light
+alien,full,0,1,500,0,0.01,5,76.2985,2.8285,10.9201,0.35035,,24.9279,89,158,cuda,original-light
+apple,grid5,0,5,500,0,0.01,5,6.59004,2.66899,20.3099,0.483611,,25.3002,314,428,cuda,original-light
+apple,grid5_ot,0,5,500,0.1,0.01,5,15.7267,2.59455,20.508,0.485918,,25.4346,310,397,cuda,original-light
+apple,full,0,1,500,0,0.01,5,70.0409,2.84291,14.3556,0.385999,,28.0119,79,120,cuda,original-light
+jay,grid5,0,5,500,0,0.01,5,6.55535,2.59963,21.1544,0.518788,,27.1381,292,334,cuda,original-light
+jay,grid5_ot,0,5,500,0.1,0.01,5,15.703,2.63676,21.2407,0.520092,,27.4475,289,322,cuda,original-light
+jay,full,0,1,500,0,0.01,5,69.6836,2.86598,14.6763,0.41368,,28.1714,89,122,cuda,original-light

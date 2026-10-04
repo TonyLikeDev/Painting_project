@@ -167,17 +167,25 @@ These rules apply to every run reported in Chapter 6.
    result row, so a number can always be traced back to the code that produced it.
 4. **Checkpoints and frame dumps are not committed**; they are regenerated from the
    recorded configuration when needed.
+5. **Configurations are compared per image.** The three seeds of one image are
+   repeated measurements of the same photograph, not three independent photographs,
+   so they are averaged first and the sample is the number of images. A comparison
+   reports the mean paired difference, its 95 % confidence interval (t distribution),
+   the share of images in which the configuration is better, and the p value of
+   Wilcoxon's signed-rank test (equation 4.2). Two configurations that are compared
+   always use the same seeds.
 
 ## 5.5 Metrics
 
 | Metric | What it measures | Implementation |
 | :--- | :--- | :--- |
 | PSNR | pixel fidelity to the target | computed on the 512 x 512 result |
-| SSIM | structural similarity | `scikit-image` |
+| SSIM | structural similarity | `torchmetrics`, Gaussian window of 11 pixels, sigma 1.5, data range 1 (the definition of the renderer-fidelity tables) |
 | LPIPS | perceptual similarity | `lpips` package, AlexNet backbone |
 | Sinkhorn distance | distributional distance between canvas and target | this project's own implementation |
 | Renderer PSNR against the rasterizer | how faithfully the neural renderer imitates the ground-truth rasterizer | held-out random strokes |
-| Strokes to reach a PSNR threshold | stroke efficiency | logged per run |
+| Optimizer steps to a PSNR threshold | speed of convergence | first step at which the PSNR of the neural canvas reaches 22 and 24 dB, logged per run |
+| PSNR of the neural canvas | quality as the optimizer sees it | the mosaic of the blocks drawn by the neural renderer, recorded at every step |
 | Wall time, peak memory | cost | measured with device synchronization |
 | Aesthetic score (1 to 5) | human preference | survey, at least ten raters |
 

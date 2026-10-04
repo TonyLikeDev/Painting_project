@@ -1,0 +1,77 @@
+created: '2026-10-03T15:14:47'
+commit: 5d2bf08
+dirty: true
+device: cuda
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+gpu_name: NVIDIA GeForce RTX 3070
+cuda: '12.8'
+cudnn: 91900
+vram_gb: 8.0
+brush: oilpaintbrush
+renderer: original-light
+grid: 5
+strokes_per_block: 20
+total_strokes: 500
+images:
+- 51e3d4424d53b10ff3d8992cc12c30771037dbf85254784b7d297ed7934b_640
+- 53e2d3464b5bac14f1dc8460962e33791c3ad6e04e507440762e7ad39f4fc4_640
+- 53e8d44b4253b10ff3d8992cc12c30771037dbf85254784e77267ed69649_640
+- 54e2d3424c54a414f1dc8460962e33791c3ad6e04e507749712e79d29244c3_640
+- 54e4dd474257af14f1dc8460962e33791c3ad6e04e50744071297ad7954fc3_640
+- 54e9d14b4e52a814f1dc8460962e33791c3ad6e04e50744172297ed39649c4_640
+- 55e4d4414a50ab14f1dc8460962e33791c3ad6e04e507441722a72dc9044cc_640
+- 57e3d6464e55aa14f1dc8460962e33791c3ad6e04e507440772d73d69545c6_640
+- 57e4d0404d5baf14f1dc8460962e33791c3ad6e04e5074417d2e72d3964ec7_640
+- 57e4d1474e5ba914f1dc8460962e33791c3ad6e04e5074417d2f7dd49f4ec6_640
+- 57e5dd464d54ac14f1dc8460962e33791c3ad6e04e50744172297ed29f4bc4_640
+- 57e8d7414852b10ff3d8992cc12c30771037dbf85254794e732f7bd29544_640
+- alien
+- apple
+- ca-si-bui-truong-linh-1
+- cube2
+- diamond
+- diamond2
+- emily-lau-NVi2yab124g-unsplash
+- fire
+- ice-cream-cone-1274894_640
+- iceland
+- jay
+- joker
+- maria-lysenko-3Bh0hy-yOcA-unsplash
+- pexels-beratorer-30650522
+- pexels-christina99999-38524143
+- pexels-molnartamasphotography-29202983
+- sunflowers
+- yosemite
+seeds:
+- 0
+- 1
+- 2
+lpips: false
+iters_per_stroke: original
+configs:
+  pixel:
+    beta_ot: 0.0
+  ot:
+    beta_ot: 0.1
+painter_defaults:
+  strokes_per_block: 20
+  iters_per_stroke: 0
+  lr: 0.002
+  optimizer: rmsprop
+  centered: false
+  beta_l1: 1.0
+  beta_ot: 0.0
+  ot_epsilon: 0.01
+  ot_iters: 5
+  ot_size: 24
+  ot_channel: random
+  ot_lse: reference
+  shape_range:
+  - 0.1
+  - 0.9
+  morphology: true
+  seed: 0

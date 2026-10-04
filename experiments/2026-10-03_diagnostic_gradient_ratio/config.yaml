@@ -1,0 +1,29 @@
+created: '2026-10-03T17:17:55'
+commit: 5d2bf08
+dirty: true
+device: cuda
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+gpu_name: NVIDIA GeForce RTX 3070
+cuda: '12.8'
+cudnn: 91900
+vram_gb: 8.0
+brush: oilpaintbrush
+grid: 5
+strokes_per_block: 20
+iters_per_stroke: original
+images:
+- 51e3d4424d53b10ff3d8992cc12c30771037dbf85254784b7d297ed7934b_640
+- 57e5dd464d54ac14f1dc8460962e33791c3ad6e04e50744172297ed29f4bc4_640
+- ice-cream-cone-1274894_640
+seeds:
+- 0
+cudnn_deterministic: false
+sinkhorn:
+  epsilon: 0.01
+  iters: 5
+  size: 24
+  channel: random
+painting_loss: pixel (L1) only

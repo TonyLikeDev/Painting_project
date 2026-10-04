@@ -16,6 +16,7 @@ checkpoints/
 *.pt
 *.pth
 experiments/**/frames/
+experiments/**/runs/
 experiments/**/*.mp4
 experiments/**/*.gif
 

@@ -60,13 +60,20 @@ def grid_boxes(height: int, width: int, m: int) -> list[Box]:
 
 
 # ----- numpy convenience (same semantics as the original helpers) --------------------------
-def img2patches(img: np.ndarray, m: int, patch_size: int, device: torch.device | str | None = None) -> torch.Tensor:
+def img2patches(
+    img: np.ndarray, m: int, patch_size: int, device: torch.device | str | None = None, interpolation: int = cv2.INTER_AREA
+) -> torch.Tensor:
     """``(H, W, 3)`` float image -> ``(m * m, 3, s, s)`` tensor after resizing to ``(m * s, m * s)``.
 
     Like the original this *stretches* the image to a square; feed a pre-cropped
     square image (``image_io.preprocess(..., mode="crop")``) to avoid distortion.
+
+    The original calls ``cv2.resize`` with OpenCV's default, bilinear interpolation, which does not average when it
+    shrinks an image (512 to 160 pixels for the 5 x 5 grid of the light renderer) and so aliases fine texture into the
+    target the strokes are fitted to. This function averages (``cv2.INTER_AREA``) by default; pass
+    ``interpolation=cv2.INTER_LINEAR`` for the original's behaviour (Week 5 measured the difference: see the report).
     """
-    img = cv2.resize(np.asarray(img, dtype=np.float32), (m * patch_size, m * patch_size), interpolation=cv2.INTER_AREA)
+    img = cv2.resize(np.asarray(img, dtype=np.float32), (m * patch_size, m * patch_size), interpolation=interpolation)
     t = torch.from_numpy(np.ascontiguousarray(img.transpose(2, 0, 1)))
     patches = split_grid(t, m)
     return patches.to(device) if device is not None else patches

@@ -44,6 +44,16 @@ def test_img2patches_matches_split_grid(synthetic_image):
     assert grid.patches2img(patches, 3, to_numpy=False).shape == (1, 3, 96, 96)
 
 
+def test_img2patches_with_linear_interpolation_is_the_originals(original_repo, synthetic_image):
+    """The original shrinks with ``cv2.resize``'s default (bilinear); the default here averages. The option reproduces the original."""
+    import utils as original_utils
+
+    theirs = original_utils.img2patches(synthetic_image, 3, 32)
+    ours = grid.img2patches(synthetic_image, 3, 32, interpolation=grid.cv2.INTER_LINEAR)
+    assert torch.equal(ours, theirs)
+    assert not torch.equal(grid.img2patches(synthetic_image, 3, 32), theirs)  # area averaging fits the strokes to a different target
+
+
 def test_block_to_global_hand_checked():
     v = np.zeros((4, 1, 12), np.float32)
     v[3, 0, :5] = (0.5, 0.5, 0.4, 0.2, 0.9)  # block 3 = row 1, column 1 of a 2x2 grid

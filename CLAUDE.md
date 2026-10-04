@@ -61,7 +61,14 @@ venv/                      local virtual environment (git-ignored)
   the student to start them in their own terminal.
 - Windows commit memory (RAM plus a 1 GB page file) is easily exhausted when several processes import torch:
   eight DataLoader worker processes failed with an out-of-memory error. Long jobs use threads inside one process
-  (the rasterizer releases the GIL); see `SyntheticStrokes` in `pipeline/train_renderer.py`.
+  (the rasterizer releases the GIL); see `SyntheticStrokes` in `pipeline/train_renderer.py`. Two CUDA processes
+  at once are fine; three, or two plus a test run that starts the original `demo.py`, ran it out of memory.
+- A `Monitor` script (not a background shell command) is not killed at 10 minutes; it lives up to 30. Week 5 ran its
+  ~900 paintings as resumable `--max-minutes 8 --dir <folder>` chunks driven by a bash loop under `Monitor`
+  that starts no new chunk after 20 minutes and is simply started again. Do not run the tests or other heavy work
+  while a timed experiment runs: timings are the one thing they spoil.
+- CUDA runs are not bit-reproducible by default (cuDNN picks algorithms by call); pass `--deterministic` to the
+  experiment scripts for exact repeats. The desktop's speed also varies by a factor of two over a day.
 
 ## Conventions that must not drift
 
@@ -113,6 +120,13 @@ venv/Scripts/python.exe -m pytest -q                       # test suite
 venv/Scripts/python.exe -m neural_painter.pipeline.train_renderer --brush oil --light --epochs 100   # train a renderer (--resume continues)
 venv/Scripts/python.exe scripts/renderer_fidelity.py       # score the pretrained (and --ours) renderers on the fixed held-out strokes
 venv/Scripts/python.exe scripts/plot_training_curve.py experiments/<run> --reference 24.38   # learning-curve figure for the report
+venv/Scripts/python.exe scripts/run_ablation.py --name a --configs pixel=0 ot=0.1 --seeds 0 1 2   # paint the eval set; resume with --dir <folder>
+venv/Scripts/python.exe scripts/summarize_ablation.py experiments/<folder> --baseline pixel      # means over seeds, paired differences per image
+venv/Scripts/python.exe scripts/plot_ablation.py experiments/<folder> --baseline pixel --other ot # qualitative + convergence figures (needs the runs/ folders)
+venv/Scripts/python.exe scripts/plot_sweep.py experiments/<folder> --baseline pixel --x beta_ot    # paired difference against the swept value (also --x ot_epsilon)
+venv/Scripts/python.exe scripts/loss_gradients.py --name gradient_ratio                             # size of the Sinkhorn gradient next to the pixel loss's, through the engine's probe hook
+venv/Scripts/python.exe scripts/compare_with_original.py --name oil_fixed_grid                      # the original demo.py against ours, same images, same scoring
+venv/Scripts/python.exe scripts/score_lpips.py experiments/<folder>                                 # fill the lpips column afterwards (needs the cached AlexNet weights)
 venv/Scripts/python.exe scripts/device_check.py            # install / tests / speed / training smoke check; run it on the MacBook
 venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available())"
 cd stylized-neural-painting && ../venv/Scripts/python.exe demo_prog.py --img_path ./test_images/apple.jpg \

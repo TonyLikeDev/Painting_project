@@ -35,6 +35,18 @@ def get_device(preference: str | torch.device | None = None) -> torch.device:
     return dev
 
 
+def set_deterministic(enabled: bool = True) -> None:
+    """Make two runs of one seed give the same numbers on CUDA (it changes nothing on the CPU, which already does).
+
+    cuDNN may pick convolution algorithms whose floating-point summation order differs from call to call, and a painting is
+    a chaotic computation (500 optimizer steps through clamps and max-pools), so without this two runs of the same seed end in
+    visibly different paintings (the PSNR of one image varied by up to 0.1 dB in a measured pair; the strokes were not equal).
+    ``cudnn.deterministic`` fixes the algorithm choice.
+    """
+    torch.backends.cudnn.deterministic = bool(enabled)
+    torch.backends.cudnn.benchmark = False
+
+
 def _mps_available() -> bool:
     mps = getattr(torch.backends, "mps", None)
     return bool(mps is not None and mps.is_available())

@@ -6,12 +6,14 @@ Runs every step even when an earlier one fails, so one problem does not hide the
 2. dependencies: each package from ``pyproject.toml`` is imported and its version recorded (plus the ffmpeg binary);
 3. test suite: ``pytest`` in a subprocess, with failures, skips and the reason for each skip;
 4. renderers: forward and forward + backward time and peak memory of the pretrained renderers on this device and on the CPU;
-5. training smoke test: two short epochs of the light oil renderer, to prove that training runs on this backend.
+5. training smoke test: two short epochs of the light oil renderer, to prove that training runs on this backend;
+6. painting smoke test: one evaluation image painted with 100 oil strokes on a 5 x 5 grid, with the pixel loss and with the
+   Sinkhorn term added, to prove that the painting engine and the transport loss run on this backend (and how long they take).
 
 Writes ``experiments/<date>_check_<os>_<arch>_<device>/`` with ``result.json`` and ``report.md``; commit and push that folder
 so the numbers reach the repository. Exit code 0 when no step failed.
 
-Usage: python scripts/device_check.py [--device auto] [--skip-tests] [--skip-training] [--with-lpips]
+Usage: python scripts/device_check.py [--device auto] [--skip-tests] [--skip-training] [--skip-painting] [--with-lpips]
 """
 from __future__ import annotations
 
@@ -150,6 +152,32 @@ def check_training(device_name: str) -> dict:
     return {"device": result["device"], "psnr_mean_after_2_short_epochs": result["last"]["psnr_mean"], "epoch2_line": epoch2}
 
 
+def check_painting(device_name: str, strokes_per_block: int = 4, iters_per_stroke: int = 0) -> dict:
+    """Paint ``apple`` of the evaluation set on a 5 x 5 grid (100 strokes by default) with and without the Sinkhorn term."""
+    from neural_painter.core.device import get_device
+    from neural_painter.core.image_io import load_image
+    from neural_painter.models.neural_renderer import load_original_checkpoint, original_checkpoint_path
+    from neural_painter.pipeline import metrics
+    from neural_painter.pipeline.painter_engine import PainterConfig, paint_fixed_grid
+
+    checkpoint, image_path = original_checkpoint_path("oilpaintbrush", True), ROOT / "data" / "eval_set" / "apple.png"
+    if not checkpoint.is_file() or not image_path.is_file():
+        return {"skipped": "the pretrained light oil renderer or data/eval_set/apple.png is missing"}
+    device = get_device(device_name)
+    renderer, image = load_original_checkpoint(checkpoint, "oilpaintbrush", True), load_image(image_path)
+    rows = []
+    for name, beta in (("pixel", 0.0), ("pixel + Sinkhorn", 0.1)):
+        cfg = PainterConfig(strokes_per_block=strokes_per_block, iters_per_stroke=iters_per_stroke, beta_ot=beta, seed=0)
+        paint = paint_fixed_grid(image, renderer, cfg, grid=5, device=device)
+        m = metrics.image_metrics(paint.image, image)
+        rows.append({"loss": name, "device": str(device), "strokes": len(paint.strokes), "steps": len(paint.result.loss),
+                     "optimize_s": round(paint.result.seconds, 1), "render_s": round(paint.render_seconds, 1),
+                     "psnr": round(m["psnr"], 2), "ssim": round(m["ssim"], 3)})
+        if not (m["psnr"] > 0 and all(v == v for v in paint.result.loss)):  # a finite loss and a picture that is not blank noise
+            raise RuntimeError(f"the painting with {name} is degenerate: {rows[-1]}")
+    return {"rows": rows}
+
+
 def check_lpips(device_name: str) -> dict:
     import torch
 
@@ -196,6 +224,14 @@ def report_markdown(results: dict) -> str:
     train = results.get("training", {})
     if train.get("ok"):
         lines += ["", "## Training smoke test", "", f"`{train['epoch2_line']}`"]
+    painting = results.get("painting", {})
+    if painting.get("rows"):
+        lines += ["", "## Painting smoke test (apple, 5 x 5 grid)", "", "| Loss | Device | Strokes | Steps | Optimize (s) | Final 512 px render (s) | PSNR (dB) | SSIM |",
+                  "| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+        lines += [f"| {r['loss']} | {r['device']} | {r['strokes']} | {r['steps']} | {r['optimize_s']} | {r['render_s']} | {r['psnr']} | {r['ssim']} |"
+                  for r in painting["rows"]]
+    elif painting.get("skipped"):
+        lines += ["", "## Painting smoke test", "", f"Skipped: {painting['skipped']}."]
     for name, r in results.items():
         if isinstance(r, dict) and r.get("ok") is False:
             detail = r.get("traceback") or "\n".join(filter(None, [r.get("error"), r.get("tail")]))
@@ -208,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--device", default="auto", help="auto, cuda, mps or cpu")
     ap.add_argument("--skip-tests", action="store_true")
     ap.add_argument("--skip-training", action="store_true")
+    ap.add_argument("--skip-painting", action="store_true")
     ap.add_argument("--with-lpips", action="store_true", help="also build the LPIPS metric (downloads the AlexNet weights once)")
     args = ap.parse_args(argv)
 
@@ -219,6 +256,8 @@ def main(argv: list[str] | None = None) -> int:
     step(results, "renderers", lambda: check_renderers(args.device))
     if not args.skip_training:
         step(results, "training", lambda: check_training(args.device))
+    if not args.skip_painting:
+        step(results, "painting", lambda: check_painting(args.device))
     if args.with_lpips:
         step(results, "lpips", lambda: check_lpips(args.device))
 

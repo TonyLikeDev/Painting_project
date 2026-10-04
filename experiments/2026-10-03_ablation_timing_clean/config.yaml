@@ -1,0 +1,62 @@
+created: '2026-10-03T18:10:00'
+commit: 5d2bf08
+dirty: true
+device: cuda
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+gpu_name: NVIDIA GeForce RTX 3070
+cuda: '12.8'
+cudnn: 91900
+vram_gb: 8.0
+brush: oilpaintbrush
+renderer: original-light
+grid: 5
+strokes_per_block: 20
+total_strokes: 500
+images:
+- alien
+- apple
+- jay
+seeds:
+- 0
+lpips: false
+iters_per_stroke: original
+cudnn_deterministic: false
+configs:
+  grid5:
+    beta_ot: 0.0
+    grid: 5
+    strokes_per_block: 20
+    total_strokes: 500
+  grid5_ot:
+    beta_ot: 0.1
+    grid: 5
+    strokes_per_block: 20
+    total_strokes: 500
+  full:
+    beta_ot: 0.0
+    grid: 1
+    strokes_per_block: 500
+    total_strokes: 500
+painter_defaults:
+  strokes_per_block: 20
+  iters_per_stroke: 0
+  lr: 0.002
+  optimizer: rmsprop
+  centered: false
+  init: error_map
+  resize: area
+  beta_l1: 1.0
+  beta_ot: 0.0
+  ot_epsilon: 0.01
+  ot_iters: 5
+  ot_size: 24
+  ot_channel: random
+  ot_lse: reference
+  shape_range:
+  - 0.1
+  - 0.9
+  morphology: true
+  seed: 0
