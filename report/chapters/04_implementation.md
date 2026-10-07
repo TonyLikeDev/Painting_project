@@ -335,8 +335,10 @@ Section 4.1.6). Three further numbers are recorded: the PSNR of the *neural* can
 mosaic of the 25 blocks as the optimizer sees it), the first optimizer step at which that PSNR reaches 22 dB
 and 24 dB, and the time of the optimization loop. The neural canvas scores higher than the finished painting
 because it is a smaller image and is drawn by the surrogate; it is the only number available during the
-optimization, which is why steps to a threshold are read from it. LPIPS needs the AlexNet weights, a
-230 MB download, and is not part of the tables yet.
+optimization, which is why steps to a threshold are read from it. LPIPS (the `lpips` package with the AlexNet backbone, images scaled to $[-1, 1]$, lower is better) was added
+afterwards from the saved paintings, once the 233 MB weights had been downloaded (`scripts/score_lpips.py`); it
+is large for every painting here (0.54 to 0.69) because a painting is not meant to look like its photograph, so
+only its differences between configurations are of use.
 
 *Summaries.* A table cell is the mean over the three seeds of the average over the images, plus or minus the
 standard deviation of the three seed means. With only three seeds that spread says how repeatable a number
@@ -378,16 +380,17 @@ with three seeds each, 180 paintings in all (experiment `2026-10-03_ablation_a_p
 deviation of the three seed means. "Steps to 22 dB" is the median over the runs whose neural canvas reaches
 22 dB, with the number of runs that do in brackets.
 
-| Loss | PSNR (dB) | SSIM | Neural-canvas PSNR (dB) | Steps to 22 dB | Optimization time (s) |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| Pixel ($L_1$) | 18.67 $\pm$ 0.03 | 0.490 $\pm$ 0.001 | 23.65 $\pm$ 0.05 | 335 (75 of 90) | 6.17 $\pm$ 0.03 |
-| Pixel + Sinkhorn ($\beta_{\text{OT}} = 0.1$) | 18.69 $\pm$ 0.01 | 0.490 $\pm$ 0.001 | 23.69 $\pm$ 0.05 | 335 (75 of 90) | 15.99 $\pm$ 0.05 |
+| Loss | PSNR (dB) | SSIM | LPIPS | Neural-canvas PSNR (dB) | Steps to 22 dB | Optimization time (s) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Pixel ($L_1$) | 18.67 $\pm$ 0.03 | 0.490 $\pm$ 0.001 | 0.536 $\pm$ 0.000 | 23.65 $\pm$ 0.05 | 335 (75 of 90) | 6.17 $\pm$ 0.03 |
+| Pixel + Sinkhorn ($\beta_{\text{OT}} = 0.1$) | 18.69 $\pm$ 0.01 | 0.490 $\pm$ 0.001 | 0.536 $\pm$ 0.001 | 23.69 $\pm$ 0.05 | 335 (75 of 90) | 15.99 $\pm$ 0.05 |
 
 *The term made no measurable difference to the finished painting.* The two losses give the same mean PSNR to
 within 0.02 dB and the same SSIM (Table 4.6). The paired comparison per image (Table 4.7) puts the mean
 difference at $+0.011$ dB with a 95 % confidence interval of $[-0.027, +0.049]$, so a gain above 0.05 dB or a
 loss above 0.03 dB is excluded; the term wins on 14 of the 30 images and loses on 16, and Wilcoxon's test
-gives $p = 0.98$. The SSIM difference is $+0.001$ ($[-0.000, +0.002]$, $p = 0.16$). For scale, the baseline
+gives $p = 0.98$. The SSIM difference is $+0.001$ ($[-0.000, +0.002]$, $p = 0.16$). LPIPS, which asks whether the two paintings
+look alike to a trained network, does not separate them either: $-0.000$ ($[-0.002, +0.002]$, $p = 0.90$). For scale, the baseline
 paintings of different images range from 13.5 to 25.7 dB, and the same image painted with three seeds
 varies by 0.085 dB (median standard deviation over images and losses), so differences of the size seen here are
 about the size of the seed noise.
@@ -399,6 +402,7 @@ seeds averaged, $n = 30$.
 | :--- | ---: | :--- | ---: | ---: |
 | PSNR (dB) | $+0.011$ | $[-0.027, +0.049]$ | 14 of 30 | 0.98 |
 | SSIM | $+0.001$ | $[-0.000, +0.002]$ | 18 of 30 | 0.16 |
+| LPIPS (lower is better) | $-0.000$ | $[-0.002, +0.002]$ | 12 of 30 | 0.90 |
 
 *Nor did it make the optimization converge faster.* Figure 4.3 plots the PSNR of the neural canvas against
 the optimizer step. The two curves coincide; their paired difference stays between $-0.02$ and $+0.08$ dB, and
@@ -437,17 +441,19 @@ the pixel-only baseline (experiment `2026-10-03_ablation_sinkhorn_weight_sweep`)
 **Table 4.8.** Weight sweep: mean over the three seeds of the image average, plus or minus the standard
 deviation of the three seed means, and the paired difference in PSNR to the pixel loss per image ($n = 10$).
 
-| Loss | PSNR (dB) | SSIM | PSNR difference, 95 % CI | Images better | Wilcoxon $p$ |
-| :--- | ---: | ---: | :--- | ---: | ---: |
-| Pixel only | 19.84 $\pm$ 0.06 | 0.556 $\pm$ 0.001 | | | |
-| + Sinkhorn, $\beta_{\text{OT}} = 0.1$ | 19.83 $\pm$ 0.01 | 0.557 $\pm$ 0.001 | $-0.011$, $[-0.076, +0.054]$ | 5 of 10 | 0.85 |
-| + Sinkhorn, $\beta_{\text{OT}} = 1$ | 19.85 $\pm$ 0.02 | 0.557 $\pm$ 0.001 | $+0.016$, $[-0.087, +0.118]$ | 6 of 10 | 1.0 |
-| + Sinkhorn, $\beta_{\text{OT}} = 10$ | 19.84 $\pm$ 0.03 | 0.556 $\pm$ 0.000 | $+0.004$, $[-0.096, +0.105]$ | 4 of 10 | 1.0 |
-| + Sinkhorn, $\beta_{\text{OT}} = 100$ | 19.73 $\pm$ 0.02 | 0.552 $\pm$ 0.002 | $-0.104$, $[-0.178, -0.030]$ | 2 of 10 | 0.02 |
+| Loss | PSNR (dB) | SSIM | LPIPS | PSNR difference, 95 % CI | Images better | Wilcoxon $p$ |
+| :--- | ---: | ---: | ---: | :--- | ---: | ---: |
+| Pixel only | 19.84 $\pm$ 0.06 | 0.556 $\pm$ 0.001 | 0.563 $\pm$ 0.003 | | | |
+| + Sinkhorn, $\beta_{\text{OT}} = 0.1$ | 19.83 $\pm$ 0.01 | 0.557 $\pm$ 0.001 | 0.563 $\pm$ 0.002 | $-0.011$, $[-0.076, +0.054]$ | 5 of 10 | 0.85 |
+| + Sinkhorn, $\beta_{\text{OT}} = 1$ | 19.85 $\pm$ 0.02 | 0.557 $\pm$ 0.001 | 0.563 $\pm$ 0.001 | $+0.016$, $[-0.087, +0.118]$ | 6 of 10 | 1.0 |
+| + Sinkhorn, $\beta_{\text{OT}} = 10$ | 19.84 $\pm$ 0.03 | 0.556 $\pm$ 0.000 | 0.562 $\pm$ 0.001 | $+0.004$, $[-0.096, +0.105]$ | 4 of 10 | 1.0 |
+| + Sinkhorn, $\beta_{\text{OT}} = 100$ | 19.73 $\pm$ 0.02 | 0.552 $\pm$ 0.002 | 0.568 $\pm$ 0.001 | $-0.104$, $[-0.178, -0.030]$ | 2 of 10 | 0.02 |
 
 From 0.1 to 10 the term changes nothing that the experiment can see, and each interval excludes an effect
 larger than 0.12 dB in either direction. At 100 it does harm: the PSNR falls by 0.10 dB and the SSIM by 0.004,
-and 8 of the 10 images get worse (Figure 4.5). No weight in this range helps.
+and 8 of the 10 images get worse (Figure 4.5). No weight in this range helps. LPIPS agrees: its differences are $+0.001$, $+0.001$ and $-0.001$ for the weights
+0.1, 1 and 10 (every interval within $\pm 0.003$) and $+0.005$ at 100 ($[-0.001, +0.010]$, $p = 0.08$), the same
+direction as PSNR at 100 but not significant.
 
 **Figure 4.5.** Paired difference to the pixel loss against the Sinkhorn weight, in PSNR (left) and SSIM
 (right): the mean with its 95 % confidence interval, and one dot per image
@@ -486,20 +492,22 @@ paintings (experiment `2026-10-03_ablation_sinkhorn_epsilon_sweep`).
 standard deviation of the three seed means, and the paired difference in PSNR to the pixel loss per image
 ($n = 5$; with five images the smallest possible Wilcoxon $p$ is 0.0625).
 
-| Loss | PSNR (dB) | SSIM | PSNR difference, 95 % CI | Images better |
-| :--- | ---: | ---: | :--- | ---: |
-| Pixel only | 20.04 $\pm$ 0.15 | 0.559 $\pm$ 0.002 | | |
-| + Sinkhorn, $\varepsilon = 0.003$ | 20.13 $\pm$ 0.11 | 0.563 $\pm$ 0.000 | $+0.093$, $[-0.015, +0.201]$ | 4 of 5 |
-| + Sinkhorn, $\varepsilon = 0.01$ (reference) | 19.90 $\pm$ 0.08 | 0.554 $\pm$ 0.001 | $-0.141$, $[-0.468, +0.186]$ | 1 of 5 |
-| + Sinkhorn, $\varepsilon = 0.03$ | 19.56 $\pm$ 0.09 | 0.532 $\pm$ 0.001 | $-0.481$, $[-0.882, -0.079]$ | 0 of 5 |
-| + Sinkhorn, $\varepsilon = 0.1$ | 16.57 $\pm$ 0.05 | 0.400 $\pm$ 0.002 | $-3.474$, $[-4.347, -2.600]$ | 0 of 5 |
+| Loss | PSNR (dB) | SSIM | LPIPS | PSNR difference, 95 % CI | Images better |
+| :--- | ---: | ---: | ---: | :--- | ---: |
+| Pixel only | 20.04 $\pm$ 0.15 | 0.559 $\pm$ 0.002 | 0.565 $\pm$ 0.001 | | |
+| + Sinkhorn, $\varepsilon = 0.003$ | 20.13 $\pm$ 0.11 | 0.563 $\pm$ 0.000 | 0.569 $\pm$ 0.001 | $+0.093$, $[-0.015, +0.201]$ | 4 of 5 |
+| + Sinkhorn, $\varepsilon = 0.01$ (reference) | 19.90 $\pm$ 0.08 | 0.554 $\pm$ 0.001 | 0.574 $\pm$ 0.002 | $-0.141$, $[-0.468, +0.186]$ | 1 of 5 |
+| + Sinkhorn, $\varepsilon = 0.03$ | 19.56 $\pm$ 0.09 | 0.532 $\pm$ 0.001 | 0.587 $\pm$ 0.001 | $-0.481$, $[-0.882, -0.079]$ | 0 of 5 |
+| + Sinkhorn, $\varepsilon = 0.1$ | 16.57 $\pm$ 0.05 | 0.400 $\pm$ 0.002 | 0.642 $\pm$ 0.002 | $-3.474$, $[-4.347, -2.600]$ | 0 of 5 |
 
 The harm grows with $\varepsilon$ (Figure 4.6): 0.14 dB at the reference value (an interval that includes
 zero), 0.48 dB at 0.03, and 3.5 dB at 0.1, where the PSNR of the neural canvas itself falls from 25.4 to 15.5 dB,
 that is, the blurred transport cost dominates and the strokes no longer reproduce the target. At the smallest value,
 0.003, the difference is $+0.09$ dB ($[-0.02, +0.20]$, better on 4 of 5 images), the largest positive value of the
 two sweeps. It is too small and too uncertain to count as a gain: five images cannot separate it from zero, and
-it would come with the same 2.6 times longer optimization. Smaller values of $\varepsilon$ were not tried.
+it would come with the same 2.6 times longer optimization. LPIPS does not confirm it: at 0.003 it is $+0.004$ ($[-0.001, +0.010]$) and none of the five images improves; it
+rises with $\varepsilon$ ($+0.009$, $+0.022$ and $+0.077$ at 0.01, 0.03 and 0.1) as the PSNR falls. Smaller values of
+$\varepsilon$ were not tried.
 
 **Figure 4.6.** Paired difference to the pixel loss against $\varepsilon$ at the weight 100, in PSNR (left) and
 SSIM (right) (`report/figures/ablation_sinkhorn_epsilon_sweep.png`).
@@ -517,16 +525,17 @@ contributes, so Ablation A3 measures it: the pixel loss alone, with and without 
 **Table 4.11.** Ablation A3: mean over the three seeds of the image average, plus or minus the standard
 deviation of the three seed means, and the paired difference per image ($n = 10$).
 
-| Dilate and erode | PSNR (dB) | SSIM | Neural-canvas PSNR (dB) |
-| :--- | ---: | ---: | ---: |
-| With (default) | 19.84 $\pm$ 0.04 | 0.556 $\pm$ 0.001 | 24.93 $\pm$ 0.12 |
-| Without | 17.13 $\pm$ 0.02 | 0.534 $\pm$ 0.002 | 23.18 $\pm$ 0.03 |
-| Difference (without minus with) | $-2.707$, 95 % CI $[-3.945, -1.470]$ | $-0.022$, $[-0.068, +0.023]$ | |
+| Dilate and erode | PSNR (dB) | SSIM | LPIPS | Neural-canvas PSNR (dB) |
+| :--- | ---: | ---: | ---: | ---: |
+| With (default) | 19.84 $\pm$ 0.04 | 0.556 $\pm$ 0.001 | 0.565 $\pm$ 0.002 | 24.93 $\pm$ 0.12 |
+| Without | 17.13 $\pm$ 0.02 | 0.534 $\pm$ 0.002 | 0.582 $\pm$ 0.001 | 23.18 $\pm$ 0.03 |
+| Difference (without minus with) | $-2.707$, 95 % CI $[-3.945, -1.470]$ | $-0.022$, $[-0.068, +0.023]$ | $+0.017$, $[-0.029, +0.062]$ | |
 
 Without the step the finished painting loses 2.7 dB of PSNR, more than any effect found in the loss ablations,
 and none of the 10 images improves (Wilcoxon $p = 0.002$, the smallest value possible for ten images). The
 SSIM difference is small and its interval contains zero, so what is lost is mostly fidelity of colour and
-tone and not structure. The neural canvas loses less (1.75 dB) than the finished painting (2.7 dB), which is
+tone and not structure. LPIPS moves the same way, less clearly: $+0.017$ without the step ($[-0.029, +0.062]$, 8 of
+the 10 images worse, $p = 0.23$). The neural canvas loses less (1.75 dB) than the finished painting (2.7 dB), which is
 consistent with a mismatch between the surrogate and the rasterizer: the optimizer fits strokes whose edges carry
 the training-mode halo, and the final rasterization does not have it. The step costs nothing but two
 pooling operations per rendered batch, and of the details of the reference painting loop that were tested
@@ -547,17 +556,19 @@ act (Table 4.9), from both starts, on 10 images (every third image of the sorted
 of the three seed means, and the paired difference to the pixel loss from the same start ($n = 10$) and to the
 pixel loss from the error-map start.
 
-| Start | Loss | PSNR (dB) | SSIM | Difference to the same start with the pixel loss, 95 % CI | Difference to error-map start with the pixel loss, 95 % CI |
-| :--- | :--- | ---: | ---: | :--- | :--- |
-| Error map | Pixel | 19.81 $\pm$ 0.06 | 0.556 $\pm$ 0.002 | | |
-| Error map | Pixel + Sinkhorn 100 | 19.75 $\pm$ 0.06 | 0.550 $\pm$ 0.002 | $-0.056$, $[-0.177, +0.064]$ | $-0.056$, $[-0.177, +0.064]$ |
-| Uniform | Pixel | 18.94 $\pm$ 0.06 | 0.533 $\pm$ 0.002 | | $-0.866$, $[-1.249, -0.482]$ |
-| Uniform | Pixel + Sinkhorn 100 | 18.68 $\pm$ 0.12 | 0.526 $\pm$ 0.002 | $-0.264$, $[-0.485, -0.044]$ | $-1.130$, $[-1.608, -0.652]$ |
+| Start | Loss | PSNR (dB) | SSIM | LPIPS | PSNR difference to the same start with the pixel loss, 95 % CI | PSNR difference to the error-map start with the pixel loss, 95 % CI |
+| :--- | :--- | ---: | ---: | ---: | :--- | :--- |
+| Error map | Pixel | 19.81 $\pm$ 0.06 | 0.556 $\pm$ 0.002 | 0.565 $\pm$ 0.001 | | |
+| Error map | Pixel + Sinkhorn 100 | 19.75 $\pm$ 0.06 | 0.550 $\pm$ 0.002 | 0.573 $\pm$ 0.003 | $-0.056$, $[-0.177, +0.064]$ | $-0.056$, $[-0.177, +0.064]$ |
+| Uniform | Pixel | 18.94 $\pm$ 0.06 | 0.533 $\pm$ 0.002 | 0.597 $\pm$ 0.001 | | $-0.866$, $[-1.249, -0.482]$ |
+| Uniform | Pixel + Sinkhorn 100 | 18.68 $\pm$ 0.12 | 0.526 $\pm$ 0.002 | 0.601 $\pm$ 0.002 | $-0.264$, $[-0.485, -0.044]$ | $-1.130$, $[-1.608, -0.652]$ |
 
 The error-map start is worth 0.87 dB with the pixel loss, and better on every image (Wilcoxon $p = 0.002$). The
 hypothesis fails: from the uniform start the transport term does not make up for the poorer placement, it makes the
 painting 0.26 dB worse ($[-0.49, -0.04]$, worse on 8 of 10 images, $p = 0.03$; SSIM $-0.007$), and from the error-map
-start the change is $-0.06$ dB with an interval that includes zero (SSIM $-0.006$, $[-0.009, -0.003]$). A
+start the change is $-0.06$ dB with an interval that includes zero (SSIM $-0.006$, $[-0.009, -0.003]$). LPIPS gives the same ordering: the error-map start is better by 0.033 with the pixel loss (all
+10 images, $p = 0.002$), and the transport term raises LPIPS by 0.008 from the error-map start ($[+0.003, +0.014]$,
+$p = 0.004$) and by 0.004 from the uniform start ($[-0.001, +0.008]$, $p = 0.08$). A
 probable reason is that a blank canvas leaves the pixel loss with gradient everywhere, because a stroke placed
 at random still overlaps regions that are wrong, so the situation the term was designed for hardly arises while
 a painting is being built up; this was not tested separately. Whatever the reason, no tested combination of
@@ -578,14 +589,15 @@ standard deviation of the three seed means, and the paired difference per image 
 neural canvas is left out: the canvases have different sizes ($32 \times 32$ against $160 \times 160$), so it
 does not compare the two modes.
 
-| Mode | PSNR (dB) | SSIM |
-| :--- | ---: | ---: |
-| $5 \times 5$ grid, 20 strokes per block | 19.78 $\pm$ 0.03 | 0.556 $\pm$ 0.001 |
-| Full image, 500 strokes in one block | 14.08 $\pm$ 0.11 | 0.435 $\pm$ 0.002 |
-| Difference (full image minus grid) | $-5.701$, 95 % CI $[-7.015, -4.388]$ | $-0.121$, $[-0.165, -0.078]$ |
+| Mode | PSNR (dB) | SSIM | LPIPS |
+| :--- | ---: | ---: | ---: |
+| $5 \times 5$ grid, 20 strokes per block | 19.78 $\pm$ 0.03 | 0.556 $\pm$ 0.001 | 0.565 $\pm$ 0.000 |
+| Full image, 500 strokes in one block | 14.08 $\pm$ 0.11 | 0.435 $\pm$ 0.002 | 0.690 $\pm$ 0.002 |
+| Difference (full image minus grid) | $-5.701$, 95 % CI $[-7.015, -4.388]$ | $-0.121$, $[-0.165, -0.078]$ | $+0.125$, $[+0.081, +0.170]$ |
 
 The grid is better by 5.7 dB of PSNR and 0.12 of SSIM, and it is better on every one of the ten images (Wilcoxon
-$p = 0.002$ for both metrics, the smallest value possible with ten images). The smallest gap, 1.6 dB, is on a
+$p = 0.002$ for both metrics, the smallest value possible with ten images). LPIPS agrees: 0.565 for the grid
+against 0.690 for the full image, a difference of 0.125 ($[+0.081, +0.170]$, all ten images, $p = 0.002$). The smallest gap, 1.6 dB, is on a
 dark photograph with a thin bright subject; the largest, 8.1 dB, is on a pale image with a small saturated
 object, where the grid places small strokes on the object and the single block cannot (Figure 4.7).
 
@@ -624,19 +636,22 @@ shrinking (the option `PainterConfig.resize = "linear"`).
 the image average, plus or minus the standard deviation of the three repeat means, and the paired difference
 to the original per image ($n = 5$).
 
-| Implementation | PSNR (dB) | SSIM | PSNR difference to the original, 95 % CI |
-| :--- | ---: | ---: | :--- |
-| Original 2021 `demo.py` | 19.75 $\pm$ 0.14 | 0.552 $\pm$ 0.001 | |
-| This package, bilinear shrinking as in the original | 19.73 $\pm$ 0.13 | 0.555 $\pm$ 0.001 | $-0.021$, $[-0.215, +0.173]$ |
-| This package, area-averaged target (default) | 20.04 $\pm$ 0.04 | 0.558 $\pm$ 0.001 | $+0.298$, $[+0.058, +0.537]$ |
+| Implementation | PSNR (dB) | SSIM | LPIPS | PSNR difference to the original, 95 % CI |
+| :--- | ---: | ---: | ---: | :--- |
+| Original 2021 `demo.py` | 19.75 $\pm$ 0.14 | 0.552 $\pm$ 0.001 | 0.570 $\pm$ 0.005 | |
+| This package, bilinear shrinking as in the original | 19.73 $\pm$ 0.13 | 0.555 $\pm$ 0.001 | 0.567 $\pm$ 0.001 | $-0.021$, $[-0.215, +0.173]$ |
+| This package, area-averaged target (default) | 20.04 $\pm$ 0.04 | 0.558 $\pm$ 0.001 | 0.566 $\pm$ 0.004 | $+0.298$, $[+0.058, +0.537]$ |
 
 With the original's resizing the two implementations are indistinguishable: the mean difference is $-0.02$ dB
 and its interval, $\pm 0.2$ dB, includes zero (Wilcoxon $p = 0.81$), the SSIM differs by $+0.003$
 ($[-0.002, +0.009]$), and within one image the three repeats of either code differ by 0.1 to 0.16 dB. The
 re-implementation therefore reproduces the quality of the reference to within the noise that five images
-and three repeats can resolve. The default of this package, which averages when it shrinks, is better than
+and three repeats can resolve. LPIPS agrees: the three configurations are within 0.004 of each other (0.570, 0.567 and
+0.566), and its paired differences to the original, $-0.003$ and $-0.004$, have intervals of about $\pm 0.01$. The default of this package, which averages when it shrinks, is better than
 its bilinear variant by 0.32 dB ($[+0.02, +0.62]$, all five images, $p = 0.06$, the smallest value possible with
-five images), and that single choice accounts for the whole gap to the original. All the other experiments in this
+five images), and that single choice accounts for the whole gap to the original in PSNR. LPIPS does not see the difference
+between the two filters ($-0.001$, $[-0.007, +0.004]$), so the 0.3 dB is a gain in pixel fidelity that a perceptual
+metric does not register. All the other experiments in this
 section use the default.
 
 ### 4.2.12 Summary of the section
@@ -644,19 +659,21 @@ section use the default.
 **Table 4.15.** What each design choice of the painting loop is worth, as the paired difference in PSNR per image
 between the choice and its alternative. All numbers are for the oil brush, the light renderer and 500 strokes.
 
-| Choice | Alternative | Difference in PSNR (dB) | Where |
-| :--- | :--- | ---: | :--- |
-| $5 \times 5$ grid | full image, one block | $+5.70$ | Table 4.13 |
-| $3 \times 3$ dilate and erode of the renderer's output | none | $+2.71$ | Table 4.11 |
-| Error-map start of new strokes | uniform start | $+0.87$ | Table 4.12 |
-| Target shrunk by area averaging | bilinear shrinking (the original's) | $+0.32$ | Table 4.14 |
-| Sinkhorn term, weight 0.1 to 10 | pixel loss alone | between $-0.01$ and $+0.02$ (no effect) | Tables 4.6, 4.8 |
-| Sinkhorn term, weight 100 | pixel loss alone | $-0.10$ | Table 4.8 |
+| Choice | Alternative | Difference in PSNR (dB) | Difference in LPIPS (lower is better) | Where |
+| :--- | :--- | ---: | ---: | :--- |
+| $5 \times 5$ grid | full image, one block | $+5.70$ | $-0.125$ | Table 4.13 |
+| $3 \times 3$ dilate and erode of the renderer's output | none | $+2.71$ | $-0.017$ (interval includes zero) | Table 4.11 |
+| Error-map start of new strokes | uniform start | $+0.87$ | $-0.033$ | Table 4.12 |
+| Target shrunk by area averaging | bilinear shrinking (the original's) | $+0.32$ | $-0.001$ (no difference) | Table 4.14 |
+| Sinkhorn term, weight 0.1 to 10 | pixel loss alone | between $-0.01$ and $+0.02$ (no effect) | between $-0.001$ and $+0.001$ | Tables 4.6, 4.8 |
+| Sinkhorn term, weight 100 | pixel loss alone | $-0.10$ | $+0.005$ (interval includes zero) | Table 4.8 |
 
 The answer to research question RQ1 under this protocol is therefore no: the optimal-transport term does not
 improve the finished painting, at the reference weight or at any weight from 0.1 to 100, at the reference
 regularization or at three others, or from either of two starts, and every difference found is within about
-0.1 dB or negative. At the reference weight the term is practically switched off, since its gradient is about
+0.1 dB or negative. LPIPS agrees wherever it can resolve a difference: it finds no effect of the term from 0.1 to 10,
+a small and not significant rise at 100, a rise with $\varepsilon$ that parallels the fall in PSNR, and it does not
+confirm the small PSNR gain at $\varepsilon = 0.003$ ($+0.004$). At the reference weight the term is practically switched off, since its gradient is about
 0.3 % of the pixel loss's. It also costs time: the optimization loop took 2.3 to 2.6 times as long with the
 term (6.2 against 16.0 s per painting in Ablation A, and 6.8 against 15.8 s in a later run of three images
 on the same machine). Full-image mode took about 5 to 11 times as long as the grid (36 to 74 s against 6.5 s for
@@ -667,7 +684,6 @@ The limits of these statements are the following. Everything was measured with o
 stroke budget and the fixed grid; the progressive mode of Week 7 and the other three brushes may behave
 differently, and so may a style loss for which the transport term might matter more. The weight and
 regularization sweeps used 10 and 5 of the 30 images, so their intervals are about $\pm 0.1$ and $\pm 0.2$ dB wide
-and cannot show a smaller effect. LPIPS is missing from all tables until the AlexNet weights are downloaded (the
-column can be filled afterwards from the saved paintings). The timings are those of one desktop and moved by
+and cannot show a smaller effect. The timings are those of one desktop and moved by
 a factor of two between runs made hours apart on the same machine, so only ratios measured together mean much;
 the same loop on the MacBook is measured in Week 7.

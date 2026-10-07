@@ -38,8 +38,9 @@ and `config.yaml`; the paintings are in the git-ignored `runs/` folders); the pr
 | Original 2021 code against this package; 5 images | `2026-10-03_check_oil_fixed_grid` | 45 | with the original's resizing -0.02 dB (CI -0.22 to +0.17); the default (area) +0.30 dB |
 | Clean timing, 3 images | `2026-10-03_ablation_timing_clean` | 9 | grid 6.8 s, grid + Sinkhorn 15.8 s, full image 72 s (the machine was slower than in the morning) |
 
-- [ ] LPIPS is missing from every table until the AlexNet weights are downloaded (the
-  student's go-ahead is needed); `scripts/score_lpips.py` then fills it in.
+- [x] LPIPS (AlexNet weights downloaded 2026-10-05 with the student's go-ahead; `scripts/score_lpips.py` filled the column of every
+  folder from the saved paintings). It agrees with PSNR and SSIM in every comparison; it does not confirm the +0.09 dB hint at
+  epsilon 0.003 (+0.004) and does not see the 0.3 dB of the area-averaged target (-0.001).
 
 ## Write
 
@@ -51,7 +52,7 @@ and `config.yaml`; the paintings are in the git-ignored `runs/` folders); the pr
 ## Exit criteria
 
 - [x] Optimizer test passes.
-- [x] Ablation A table complete with means and standard deviations (without LPIPS).
+- [x] Ablation A table complete with means and standard deviations (with LPIPS).
 
 ## Notes and deviations
 
