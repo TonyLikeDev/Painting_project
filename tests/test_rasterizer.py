@@ -77,7 +77,7 @@ def test_train_mode_disables_morphology():
 @pytest.mark.parametrize("brush", BRUSHES)
 def test_initial_params_at_are_valid(brush):
     r = ProceduralRasterizer(brush, 128, rng=4)
-    p = r.initial_params_at(0.3, 0.7, (0.2, 0.4, 0.6))
+    p = r.initial_params_at(0.3, 0.7, (0.2, 0.4, 0.6), chord=0)  # the original's start: Bezier points on the centre
     validate_params(p, brush)
     spec = get_brush(brush)
     assert p.shape == (spec.dim,)

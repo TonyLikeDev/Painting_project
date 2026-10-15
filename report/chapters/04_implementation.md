@@ -1,8 +1,8 @@
 # 4. Implementation
 
 This chapter describes how the method of Chapter 2 is implemented in the `neural_painter`
-package. It grows week by week; this version covers the neural renderer (Week 4) and the
-optimization of strokes against a target image (Week 5). Unless a
+package. It grows week by week; this version covers the neural renderer (Week 4), the
+optimization of strokes against a target image (Week 5) and the four brush materials (Week 6). Unless a
 sentence says otherwise, every number in it comes from a script or test in the repository, and
 the experiment folder it was produced in is named next to it.
 
@@ -243,7 +243,9 @@ block, colour and opacity to $[0, 1]$. The optimizer is RMSprop with learning ra
 of steps per stroke is $T = \lfloor 500 / N \rfloor$, so every setting uses about 500 optimizer steps
 whatever the stroke budget: 25 steps per stroke for $N = 20$ strokes per block, a single step for
 $N = 500$. The defaults of `PainterConfig` are those of the reference run with the pixel loss alone; the
-Sinkhorn term (Section 4.2.2), Adam and the centred form of RMSprop are options.
+Sinkhorn term (Section 4.2.2), Adam and the centred form of RMSprop are options. (Since Week 6 the ranges new strokes start
+from come from each brush's YAML file and differ from the reference's; Section 4.3.3. Every experiment of this section used
+the reference ranges.)
 
 `paint_fixed_grid` turns this into a whole-image painter. The image is stretched to $mS$ pixels (by area
 averaging; the reference interpolates bilinearly, see Section 4.2.11) and cut into an $m \times m$ grid of blocks, which are painted as one batch; the strokes of all blocks are mapped
@@ -682,8 +684,359 @@ operations per step, so it depends on the speed of the processor as much as on t
 
 The limits of these statements are the following. Everything was measured with one brush, one renderer, one
 stroke budget and the fixed grid; the progressive mode of Week 7 and the other three brushes may behave
-differently, and so may a style loss for which the transport term might matter more. The weight and
+differently (for the brushes, Section 4.3.5 finds that they do not), and so may a style loss for which the transport term might matter more. The weight and
 regularization sweeps used 10 and 5 of the 30 images, so their intervals are about $\pm 0.1$ and $\pm 0.2$ dB wide
 and cannot show a smaller effect. The timings are those of one desktop and moved by
 a factor of two between runs made hours apart on the same machine, so only ratios measured together mean much;
 the same loop on the MacBook is measured in Week 7.
+
+## 4.3 Brush materials
+
+Section 4.1 checked and scored the pretrained renderers of all four brushes, but its training and cost measurements and
+all of Section 4.2 used the oil brush only. This section extends the painter to the other three materials of the
+reference, watercolour, marker pen and coloured tape, and asks how each should start its strokes, how the four compare
+on the same photographs, whether the conclusion about the Sinkhorn term holds for all of them, and whether the renderer
+training of Section 4.1.5 works for every brush (Section 4.3.6). The technical reference for the brushes (files, parameters, how to
+load and add one) is `report/notes/render_module.md`.
+
+### 4.3.1 The four materials
+
+Every brush shares the pipeline: a parameter vector in $[0, 1]^d$, a procedural rasterizer that is the ground truth,
+a neural renderer that imitates it, and the compositing equation. What differs is summarized in Table 4.16.
+
+**Table 4.16.** The four materials as the rasterizer draws them ($W$ is the canvas side in pixels).
+
+| | Oil paint | Watercolour | Marker pen | Coloured tape |
+| :--- | :--- | :--- | :--- | :--- |
+| Parameters (shape / colour / opacity) | 12 (5 / 6 / 1) | 15 (8 / 6 / 1) | 12 (8 / 3 / 1) | 9 (5 / 3 / 1) |
+| Geometry | textured patch: centre, size, angle | quadratic Bezier | quadratic Bezier | rotated rectangle |
+| Footprint | grey-scale brush texture scaled to $(1 + wW) \times (1 + hW)$ px | 100 discs, radius interpolated between the ends | 100 squares turned with the tangent, one width | one rectangle |
+| Colour | gradient along the brush | gradient along the curve | one colour | one colour |
+| Opacity | always 1 | parameter, uniform | parameter, uniform | parameter, uniform |
+| Default canvas | white | white | black | black |
+
+The reference rasterizer has no bleeding, wet edge or paper texture for the watercolour. Such effects could be drawn,
+but every pretrained renderer was trained on the reference rasterizer, so an effect would also need a renderer trained
+on it; it is left as future work, and "blur and bleed", which the research plan lists among the properties to tune, is
+therefore not tuned here. What can be tuned without retraining is how a new stroke starts: the ranges its size and
+opacity are drawn from, and, for the Bezier brushes, its initial shape (Sections 4.3.2 and 4.3.3).
+
+*Protocol.* Unless a sentence says otherwise, the experiments of this section follow Section 4.2.5 (fixed $5 \times 5$
+grid, 500 strokes, 25 steps per stroke, RMSprop at $0.002$, pixel loss only, the authors' pretrained light renderer of
+each brush, seeds 0, 1 and 2) with each brush's default canvas. Settings were tuned on three images chosen to differ in
+content (`cube2`: flat coloured regions; `sunflowers`: a saturated still life; `ice-cream-cone`: a photograph with a
+smooth background). The best setting of each sweep, whenever it improved PSNR on all three tuning images, was then
+checked on ten other images, spread evenly over the remaining 27 of the evaluation set in name order, so that no default
+rests on the images it was chosen on. The four brushes are compared on three images not used for tuning (`apple`, the
+image of the Week 1 baseline; `iceland`, a landscape; `jay`, a portrait); `apple` and `iceland` are also outside the
+held-out set, while `jay` is one of its ten images, so its paintings in Table 4.21 are the held-out runs of the adopted
+settings. All Week 6 runs set `--deterministic`: the 27 runs of three marker settings that were painted again in a
+second experiment folder (for Figure 4.9) gave identical PSNR to every printed digit.
+
+### 4.3.2 The marker pen could not start
+
+With the reference initialization the marker pen hardly paints. On the three tuning images, 500 strokes leave the
+canvas black except for a few specks (PSNR 4.2 dB, Table 4.18, first row; Figure 4.9). The cause is in how a new stroke starts and in what
+the renderer learnt from the rasterizer. The reference places all three Bezier points of a new marker stroke on the
+pixel the error map chose. The rasterizer does not draw a marker stroke whose end points are less than 4 pixels apart
+(in L1 distance, at the canvas size it draws at), so in the training data of the light 32-pixel renderer every short
+stroke is blank, and the renderer learnt that. A stroke that renders almost nothing gets almost no gradient with respect
+to its shape, so almost none starts to grow.
+
+Table 4.17 measures this directly (`scripts/marker_chord.py`, experiment `2026-10-10_diagnostic_marker_chord`): 512
+straight strokes per chord length, in 16 directions, scored by the share whose largest opacity exceeds 0.5. The light
+renderer draws none of the strokes up to a chord of 0.05 of the block and all of them from 0.1; the gradient of its
+summed opacity with respect to the shape parameters is about 8,600 times smaller for a dot (0.69) than for a chord of
+0.1 (5,900). The full 128-pixel renderer, by contrast, draws 83 % of the dots, although its rasterizer draws none at
+either size. A plausible reason, not tested, is that at 128 pixels the blank region is much narrower (chords below about
+0.03 instead of 0.1), so the network smooths over it; painting with the full renderer was not tried, so the diagnostic
+suggests, but does not show, that the problem is specific to the light renderer. The Week 1 baseline (the original
+`demo_prog.py` with the light renderer, a progressive grid and centred RMSprop) fails in the same way at its $1 \times 1$
+level, where the PSNR of its canvas stays at 6.9 dB for all 500 steps, but there strokes did start to grow from the
+$2 \times 2$ level on and the painting ended at 14.0 dB with large unpainted areas; which difference lets them grow there
+was not tested.
+
+**Table 4.17.** Share of straight marker strokes of a given chord length (block units) that each renderer draws.
+
+| Chord | Rasterizer, 32 px | Rasterizer, 128 px | Neural, light (32 px) | Neural, full (128 px) |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 (the reference start) | 0.00 | 0.00 | 0.00 | 0.83 |
+| 0.02 | 0.00 | 0.33 | 0.00 | 1.00 |
+| 0.05 | 0.00 | 1.00 | 0.00 | 1.00 |
+| 0.075 | 0.21 | 1.00 | 0.26 | 1.00 |
+| 0.1 | 0.71 | 1.00 | 1.00 | 1.00 |
+| 0.125 | 0.98 | 1.00 | 1.00 | 1.00 |
+| 0.15 | 1.00 | 1.00 | 1.00 | 1.00 |
+
+*The fix.* A new Bezier stroke can now start as a straight segment of a given length (`chord` in the brush's YAML,
+`PainterConfig.init_chord`), in a random direction, with its control point in the middle, centred on the point the error
+map chose; near a border the centre is moved inwards, axis by axis, only as far as both ends need to stay inside the
+shape range $[0.1, 0.9]$. A length of 0 makes no extra random draw, so it gives exactly the strokes of the Week 5 painter
+(`tests/test_brush_init.py`). Table 4.18 sweeps the length on the tuning images. Any length from 0.1 makes the brush
+paint (17.1 dB against 4.2 dB). Longer starts are better up to 0.4 and then level off: 0.4, 0.5 and 0.6 are within
+0.1 dB of each other (18.08, 18.14 and 18.17 dB) and of the noise between seeds, while 0.3 is 0.28 dB below 0.5 on
+every image. The shortest start on that plateau, 0.4, was chosen, since a shorter stroke can reach finer detail. On the
+ten held-out images 0.4 beats 0.1 by 1.18 dB (95 % CI 0.95 to 1.42), on every image, and SSIM (+0.042) and LPIPS
+($-0.037$) agree on every image too (experiment `2026-10-10_ablation_confirm_start_markerpen_fixed`). The marker pen
+therefore starts its strokes with a length of 0.4 by default (`configs/marker_pen.yaml`). The PSNR of the *neural* canvas
+peaks earlier, at 0.3 (24.4 dB), and falls for longer starts (23.2 dB at 0.6): long starts help the finished painting
+more than the surrogate's view of it.
+
+**Table 4.18.** Marker pen, length of a new stroke: mean over the three seeds of the average over the three tuning
+images, plus or minus the standard deviation over seeds (experiment `2026-10-10_ablation_tuning_marker_chord_fixed`; the
+row of length 0 is from `2026-10-10_ablation_tuning_marker_chord`, which has the same images and seeds).
+
+| Start length | PSNR (dB) | SSIM | LPIPS | Neural-canvas PSNR (dB) |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 (the reference) | 4.20 ± 0.00 | 0.008 ± 0.000 | 0.927 ± 0.012 | 4.18 ± 0.00 |
+| 0.1 | 17.11 ± 0.16 | 0.617 ± 0.003 | 0.555 ± 0.004 | 23.14 ± 0.14 |
+| 0.15 | 17.28 ± 0.05 | 0.623 ± 0.005 | 0.546 ± 0.010 | 23.74 ± 0.07 |
+| 0.2 | 17.49 ± 0.16 | 0.628 ± 0.003 | 0.545 ± 0.004 | 24.10 ± 0.17 |
+| 0.3 | 17.86 ± 0.13 | 0.633 ± 0.004 | 0.538 ± 0.008 | 24.36 ± 0.13 |
+| **0.4** | **18.08 ± 0.14** | **0.631 ± 0.004** | **0.530 ± 0.001** | **24.19 ± 0.24** |
+| 0.5 | 18.14 ± 0.17 | 0.625 ± 0.003 | 0.527 ± 0.002 | 23.77 ± 0.13 |
+| 0.6 | 18.17 ± 0.14 | 0.624 ± 0.003 | 0.527 ± 0.001 | 23.20 ± 0.17 |
+
+**Figure 4.8.** Left: share of marker strokes drawn against their chord length, for the rasterizer and the neural
+renderer at both sizes (Table 4.17). Right: PSNR and LPIPS of the finished marker paintings against the start length
+(Table 4.18) (`report/figures/marker_chord.png`).
+
+**Figure 4.9.** Marker paintings of the three tuning images (seed 0) with the reference start (a dot) and with start
+lengths of 0.1 and 0.4 (`report/figures/marker_start_qualitative.png`). With the reference start the 500 strokes leave
+a few specks on the black canvas. The thin black seams along the block borders in the other two columns are the canvas
+showing between blocks: a stroke's end points (or centre) are clamped to $[0.1, 0.9]$ of its block, so a stroke narrower
+than that margin cannot reach the border. On the white canvas of the oil brush the same seams are white and much less visible; the progressive mode of
+Week 7, whose blocks overlap from one level to the next, should hide them.
+
+### 4.3.3 How large a new stroke starts
+
+The reference draws the width and height (oil, tape) or the two radii (watercolour, marker) of a new stroke uniformly
+from $[0.1, 0.25]$ for every brush. Table 4.19 compares this with a smaller range, $[0.05, 0.15]$, and a larger one,
+$[0.2, 0.4]$, on the tuning images. For all three brushes tested the smaller range is worse or no better and the larger
+one has the highest PSNR (by 0.26 to 0.35 dB); for tape and watercolour SSIM and LPIPS agree or do not disagree, while
+for the oil brush they are slightly worse, so on three images the oil result was ambiguous.
+
+**Table 4.19.** Start size range on the three tuning images: mean over the three seeds of the image average, plus or
+minus the standard deviation over seeds (experiments `2026-10-10_ablation_tuning_size_<brush>`). The marker pen was
+tuned for its start length instead (Section 4.3.2).
+
+| Brush | Start sizes | PSNR (dB) | SSIM | LPIPS |
+| :--- | :--- | ---: | ---: | ---: |
+| Oil paint | $[0.05, 0.15]$ | 18.74 ± 0.04 | 0.607 ± 0.001 | 0.530 ± 0.002 |
+| | $[0.1, 0.25]$ (reference) | 19.37 ± 0.09 | 0.606 ± 0.003 | 0.525 ± 0.002 |
+| | $[0.2, 0.4]$ | 19.72 ± 0.06 | 0.602 ± 0.000 | 0.535 ± 0.003 |
+| Watercolour | $[0.05, 0.15]$ | 18.58 ± 0.08 | 0.638 ± 0.003 | 0.470 ± 0.007 |
+| | $[0.1, 0.25]$ (reference) | 18.69 ± 0.04 | 0.638 ± 0.004 | 0.473 ± 0.005 |
+| | $[0.2, 0.4]$ | 19.04 ± 0.04 | 0.646 ± 0.002 | 0.474 ± 0.002 |
+| Coloured tape | $[0.05, 0.15]$ | 19.50 ± 0.05 | 0.647 ± 0.002 | 0.499 ± 0.004 |
+| | $[0.1, 0.25]$ (reference) | 19.74 ± 0.04 | 0.660 ± 0.003 | 0.486 ± 0.002 |
+| | $[0.2, 0.4]$ | 20.00 ± 0.04 | 0.674 ± 0.001 | 0.467 ± 0.003 |
+
+A setting that reached the held-out check was adopted when its PSNR gain on the ten held-out images has a 95 %
+confidence interval that excludes zero and neither SSIM nor LPIPS is significantly worse; the same rule was applied to
+every candidate. Table 4.20 gives the result. The larger range gains 0.35 to 0.39 dB on average and improves every one of
+the ten images for all three brushes; SSIM is better for all three; LPIPS is better for tape and watercolour and unchanged
+for oil. All three adopt $[0.2, 0.4]$ (`configs/*.yaml`, `sampler.size_range`). With the larger start the neural canvas also
+reaches 22 dB earlier (median step 319 to 264 for oil, 362 to 306 for watercolour, 342 to 298 for tape); as Section 4.2.6
+notes for such thresholds, this mostly says that fewer strokes are needed to cover a block, not that the optimizer
+converges faster.
+
+**Table 4.20.** The larger start range against the reference on ten held-out images: paired difference per image
+(seeds averaged), its 95 % confidence interval and the share of images that improve (experiments
+`2026-10-10_ablation_confirm_start_<brush>`; for the marker pen `..._confirm_start_markerpen_fixed`; for the
+watercolour's opacity `..._confirm_alpha_watercolor`).
+
+| Brush | PSNR (dB) | SSIM | LPIPS (lower is better) |
+| :--- | :--- | :--- | :--- |
+| Oil paint | +0.39 [+0.14, +0.64], 10 of 10 | +0.005 [+0.001, +0.008], 8 of 10 | $-0.003$ [$-0.009$, +0.004], 7 of 10 |
+| Watercolour | +0.35 [+0.23, +0.48], 10 of 10 | +0.013 [+0.000, +0.026], 9 of 10 | $-0.012$ [$-0.021$, $-0.004$], 9 of 10 |
+| Coloured tape | +0.36 [+0.14, +0.58], 10 of 10 | +0.022 [+0.015, +0.030], 10 of 10 | $-0.017$ [$-0.027$, $-0.006$], 10 of 10 |
+| Marker pen (start length 0.4 against 0.1) | +1.18 [+0.95, +1.42], 10 of 10 | +0.042 [+0.020, +0.063], 10 of 10 | $-0.037$ [$-0.044$, $-0.029$], 10 of 10 |
+| Watercolour (start opacity $[0.5, 0.7]$ against $[0.98, 1]$) | +0.30 [+0.20, +0.40], 10 of 10 | +0.006 [+0.002, +0.010], 9 of 10 | $-0.009$ [$-0.019$, +0.002], 9 of 10 |
+
+*Starting opacity.* The three translucent brushes were also tuned for the range their starting opacity is drawn from
+(experiments `2026-10-10_ablation_tuning_alpha_<brush>`). For the marker pen and tape neither a nearly opaque start
+($[0.98, 1]$) nor a translucent one ($[0.5, 0.7]$) differs from the reference $[0.8, 0.98]$ by more than the noise: the
+PSNR differences lie between $-0.07$ and $+0.20$ dB with intervals that include zero, and neither SSIM nor LPIPS changes
+significantly. The marker pen's translucent start, which had improved PSNR on all three tuning images (+0.20 dB, interval
+$-0.18$ to $+0.59$), was checked on the held-out images and rejected: $+0.09$ dB (95 % CI $-0.21$ to $+0.39$) with a worse
+LPIPS on 9 of the 10 images ($+0.013$, Wilcoxon $p = 0.049$; experiment `..._confirm_alpha_markerpen`). The
+optimizer adjusts the opacity of every stroke from its first step, so it is not surprising that where it starts matters
+little. The watercolour, which the reference starts almost opaque ($[0.98, 1]$), is the exception: it improves when it
+starts translucent, by 0.11 dB at $[0.8, 0.98]$ and 0.36 dB at $[0.5, 0.7]$, with SSIM and LPIPS better on all three
+tuning images at $[0.5, 0.7]$ (at $[0.8, 0.98]$ LPIPS improves on two of the three), while lower ranges are no better than $[0.5, 0.7]$ ($+0.01$ dB at $[0.3, 0.5]$, $+0.05$ dB at $[0.1, 0.3]$,
+experiment `..._tuning_alpha_watercolor_low`). On the held-out images $[0.5, 0.7]$ gains 0.30 dB on average and improves every image, with
+SSIM better and LPIPS not worse (last row of Table 4.20), and it is the watercolour's default. One reading, not tested
+further, is that a translucent first stroke mixes with the canvas instead of covering it, so the colours of a block are
+built up in layers, which suits the soft discs of this brush.
+
+These defaults change the oil painter of Section 4.2, whose experiments all used the reference range: they are
+reproduced by `init_size_range=0.1:0.25`. The comparison with the 2021 code, `scripts/compare_with_original.py`, keeps the
+reference range in its `ours_linear` configuration; its `ours` configuration now uses $[0.2, 0.4]$, so a rerun would not
+reproduce the default row of Table 4.14.
+
+### 4.3.4 The four brushes on the same images
+
+Table 4.21 and Figure 4.10 paint the three comparison images with each brush and its tuned defaults.
+
+**Table 4.21.** The four brushes on `apple`, `iceland` and `jay`: mean over the three seeds of the average over the
+three images, plus or minus the standard deviation over seeds (experiment `2026-10-10_brushes_brush_comparison_final`,
+which summarizes the four folders `2026-10-10_ablation_brushes_<brush>`, with `..._markerpen_fixed` and
+`..._watercolor_final` for the marker pen and the watercolour).
+
+| Brush | PSNR (dB) | SSIM | LPIPS | PSNR, apple / iceland / jay |
+| :--- | ---: | ---: | ---: | :--- |
+| Oil paint | 20.86 ± 0.06 | 0.505 ± 0.002 | 0.548 ± 0.006 | 20.70 / 20.40 / 21.48 |
+| Watercolour | 20.36 ± 0.10 | 0.535 ± 0.002 | 0.517 ± 0.001 | 20.16 / 19.73 / 21.18 |
+| Marker pen | 19.41 ± 0.27 | 0.539 ± 0.002 | 0.565 ± 0.003 | 19.14 / 18.55 / 20.53 |
+| Coloured tape | 21.53 ± 0.10 | 0.581 ± 0.002 | 0.504 ± 0.003 | 21.01 / 20.83 / 22.77 |
+
+**Figure 4.10.** The three comparison images painted with each brush (seed 0, 500 strokes)
+(`report/figures/brush_comparison.png`).
+
+The order by PSNR is the same on all three images: tape, oil, watercolour, marker pen. The two metrics of structure
+and perception put tape first as well (SSIM 0.581, LPIPS 0.504), but they rank the other three differently from PSNR:
+watercolour has a better LPIPS than oil (0.517 against 0.548) at a lower PSNR, and the marker pen, last by PSNR and LPIPS,
+has the second-best SSIM. A likely reason, not tested here, is that tape is a solid rectangle whose five shape parameters map almost directly
+onto the area it covers, which suits a fixed grid of small square blocks, while the textured oil stroke and the gradients
+of the Bezier brushes spend part of their parameters on detail the pixel loss rewards less. The marker pen, like the tape,
+keeps one colour along a stroke, and its width is fixed along the curve. These differences range from 0.5 dB (oil against
+watercolour) to 2.1 dB (tape against marker pen) and describe the brushes under one protocol (500 strokes on a fixed grid); they say which material fits the photograph
+more closely, not which painting looks better, a question for the user study of Week 9.
+
+### 4.3.5 Does the Sinkhorn term help any brush?
+
+Section 4.2.6 found that the optimal-transport term does not improve oil paintings. The reference paper motivates the
+term with strokes that do not overlap their target, which could matter more for thin Bezier strokes or for flat tape
+than for the broad oil brush, so Ablation A was repeated for the other three brushes: pixel loss alone against pixel
+loss plus the Sinkhorn term at the reference weight 0.1, each brush with its Week 6 defaults, on the same ten images as
+the weight sweep of Section 4.2.7 (every third image of the evaluation set) and three seeds (60 paintings per brush).
+Table 4.22 sets them next to the oil result of Section 4.2.6.
+
+**Table 4.22.** Ablation A for every brush: mean PSNR of the pixel-only and the pixel + Sinkhorn paintings (mean over
+seeds of the image average), the paired difference per image with its 95 % confidence interval and the share of images
+where the term wins, the paired difference in LPIPS, and the ratio of the optimization times (experiments
+`2026-10-03_ablation_a_pixel_vs_sinkhorn` for oil, `2026-10-10_ablation_ablation_a_<brush>` for the others, with
+`..._watercolor_final` for the watercolour).
+
+| Brush | Images | Pixel loss (dB) | + Sinkhorn (dB) | Difference in PSNR (dB) | Difference in LPIPS | Time |
+| :--- | ---: | ---: | ---: | :--- | :--- | ---: |
+| Oil paint (Section 4.2.6) | 30 | 18.67 | 18.69 | +0.011 [$-0.027$, +0.049], 47 % | $-0.000$ [$-0.002$, +0.002] | 2.6 x |
+| Watercolour | 10 | 19.59 | 19.63 | +0.038 [$-0.055$, +0.131], 60 % | $-0.000$ [$-0.004$, +0.004] | 2.7 x |
+| Marker pen | 10 | 18.82 | 18.80 | $-0.016$ [$-0.121$, +0.088], 40 % | +0.002 [$-0.001$, +0.006] | 2.6 x |
+| Coloured tape | 10 | 20.88 | 20.92 | +0.047 [$-0.001$, +0.094], 80 % | +0.002 [$-0.003$, +0.008] | 2.6 x |
+
+No brush gains. For watercolour and the marker pen the difference is zero within about 0.1 dB. For tape the
+term wins on 8 of the 10 images by 0.047 dB on average, but the interval just reaches zero (Wilcoxon $p = 0.08$) and LPIPS
+moves, insignificantly, the other way; a gain of a few hundredths of a decibel at 2.6 times the cost would not be worth
+having even if it were real. At the reference weight, the answer to RQ1 found for the oil brush therefore holds for all
+four materials under this protocol; the other weights, regularizations and starts of Sections 4.2.7 to 4.2.9 were tested
+with the oil brush only. The term is not expected to rescue the marker pen's reference start either (this was not run: the
+marker rows above use the 0.4 start): a stroke that renders almost nothing barely changes either loss, so both gradients
+are close to zero, and for the oil brush at the weight 0.1 the transport gradient is below 0.1 % of the pixel gradient in
+any case (Table 4.9). That is why the fix of Section 4.3.2 changes the start and not the loss. The times of this table were
+measured while renderers were training on the same machine, so only the ratio, measured on interleaved runs, is
+meaningful; at 2.6 to 2.7 it is close to the 2.6 of Section 4.2.6 (2.3 to 2.6 over the Week 5 runs, Section 4.2.12).
+
+### 4.3.6 Renderers trained for every brush
+
+The light renderers of watercolour, marker pen and tape were trained with the recipe of Section 4.1.5 (100 epochs of
+50,000 strokes, Adam at $2 \times 10^{-4}$ divided by 10 every 25 epochs, $100 \cdot \mathrm{MSE}$), as the oil renderer was in
+Week 4, and scored on the same 1,000 held-out strokes as the pretrained ones (`scripts/renderer_fidelity.py`, experiment
+`2026-10-10_fidelity_week6`; training runs `2026-10-10_train_<brush>_light_100ep`). Table 4.23 gives the result.
+
+**Table 4.23.** The retrained light renderers against the authors' (same 1,000 held-out strokes per brush). "Epochs" is
+the length of the schedule; the checkpoint used is the best one on the validation strokes, which are these same 1,000
+strokes (the last-epoch checkpoint scores less than 0.01 dB lower in every case).
+
+| Brush | Original: PSNR mean (SSIM fg / $\alpha$) | Retrained: PSNR mean (SSIM fg / $\alpha$) | Difference | Epochs | Training time |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Oil paint (Week 4) | 24.38 (0.944 / 0.920) | 24.16 (0.944 / 0.929) | $-0.22$ | 100 | 51 min |
+| Watercolour | 25.76 (0.925 / 0.917) | 25.31 (0.923 / 0.934) | $-0.45$ | 100 | 132 min |
+| Marker pen | 24.59 (0.914 / 0.903) | 23.95 (0.910 / 0.913) | $-0.64$ | 100 | 197 min |
+| Coloured tape | 28.33 (0.959 / 0.957) | 27.53 (0.957 / 0.953) | $-0.80$ | 100 | 14 min |
+| Coloured tape, reference schedule | 28.33 (0.959 / 0.957) | 28.52 (0.965 / 0.964) | $+0.19$ | 400 | 50 min |
+
+Every retrained renderer is within the 1 dB target of the research plan, and the opacity SSIM is higher than the
+original's for all of them except the 100-epoch tape renderer. The cost differs by a factor of 14 between brushes because training is limited by the
+rasterizer on the CPU, not by the GPU: a tape stroke is one polygon (about 6,000 strokes per second), an oil stroke one
+texture warp (1,600), and the Bezier brushes draw 100 discs or squares per stroke from a Python loop (about 630 for the
+watercolour, 420 for the marker pen).
+
+*For tape, the gap is the schedule.* The tape renderer's learning curve (Figure 4.11) was still rising steeply when the learning rate
+was first divided by 10 at epoch 25, and flat afterwards. Because tape trains in minutes, it was also trained with the
+reference's schedule (400 epochs, drops every 100; run `2026-10-10_train_rectangle_light_400ep`): it reaches 28.32 dB just
+after the first drop, at epoch 102, and 28.52 dB at the end, 0.19 dB *above* the authors' renderer. So, for tape, the
+training code reproduces the reference renderer once given the same schedule, and the 0.80 dB deficit of its 100-epoch run
+is what a quarter of the training costs; that the same holds for the other three brushes is plausible but untested. The
+test would take about 3.4 (oil), 9 (watercolour) and 13 hours (marker pen) and was not run.
+
+**Figure 4.11.** Learning curves of the retrained light renderers: watercolour, marker pen, tape with 100 epochs and tape
+with the reference's 400 (`report/figures/renderer_training_curve_<brush>_light.png` and
+`renderer_training_curve_rectangle_light_400ep.png`). Dotted lines mark the learning-rate drops, the dashed line the
+authors' renderer.
+
+*Painting with the retrained renderers.* A renderer is only a means to paint, so each retrained renderer was used to paint
+the ten held-out images with the brush's defaults and compared, image by image, with the same images painted by the
+authors' renderer (`scripts/paired_folders.py`; experiments `2026-10-10_ablation_heldout_ours_<brush>` and, for the 400-epoch tape renderer,
+`2026-10-10_ablation_heldout_ours_rectangle_400ep`, against the held-out runs of Section 4.3.3). Table 4.24 gives the result.
+
+**Table 4.24.** Painting with the retrained renderer instead of the authors': paired difference per image (seeds averaged)
+on the ten held-out images, 95 % confidence interval and the share of images that improve.
+
+| Renderer | PSNR (dB) | SSIM | LPIPS (lower is better) | Neural-canvas PSNR (dB) |
+| :--- | :--- | :--- | :--- | :--- |
+| Oil paint | $-0.15$ [$-0.29$, $-0.01$], 2 of 10 | $-0.026$ [$-0.044$, $-0.008$], 1 of 10 | $-0.009$ [$-0.023$, +0.004], 7 of 10 | $-0.04$ |
+| Watercolour | +1.21 [+0.04, +2.39], 9 of 10 (median +0.78) | +0.023 [$-0.006$, +0.051], 8 of 10 | $-0.034$ [$-0.058$, $-0.010$], 10 of 10 | +1.57 |
+| Marker pen | +1.20 [$-0.04$, +2.45], 10 of 10 (median +0.71) | +0.026 [+0.011, +0.042], 10 of 10 | $-0.065$ [$-0.104$, $-0.026$], 10 of 10 | +1.04 |
+| Coloured tape | +0.02 [$-0.34$, +0.38], 3 of 10 | $-0.005$ [$-0.021$, +0.012], 4 of 10 | $-0.024$ [$-0.046$, $-0.001$], 9 of 10 | +0.54 |
+| Coloured tape, 400 epochs | +0.28 [$-0.19$, +0.76], 8 of 10 | +0.013 [+0.005, +0.020], 10 of 10 | $-0.032$ [$-0.052$, $-0.013$], 10 of 10 | +0.76 |
+
+Only the oil renderer paints in line with its fidelity: 0.22 dB less faithful, it paints 0.15 dB worse (and its SSIM is
+lower on 9 of the 10 images). The 100-epoch tape renderer, the least faithful of all ($-0.80$ dB), is even in PSNR and better
+in LPIPS and in neural-canvas PSNR, and the 400-epoch one is better in SSIM and LPIPS on every image. The two Bezier brushes
+depart from their fidelity most:
+their retrained renderers are 0.45 and 0.64 dB *less* faithful on random strokes, yet paint 1.2 dB better on average,
+better on 9 and 10 of the 10 images, with LPIPS better on every image. The mean is inflated by one image, the balloon on a
+flat pale background, which gains 5.8 (watercolour) and 6.0 dB (marker pen); on the other nine images the gains are $-0.1$
+to $+1.2$ dB (watercolour) and $+0.1$ to $+1.6$ dB (marker pen), with medians of 0.78 and 0.71 dB over all ten. Figure 4.12 shows the effect: with the authors' watercolour
+renderer the optimized strokes leave dark rings on the flat background once they are rasterized, with ours far fewer. The
+neural canvas improves as much as the finished painting (+1.57 and +1.04 dB), so the retrained renderers do not only agree
+better with the rasterizer; the optimizer also reaches a better canvas through them.
+
+Why was not established. Fidelity is measured on strokes drawn uniformly from the whole parameter space, while the painter
+uses a narrow part of it (strokes of a given size and opacity, overlapping on a smooth canvas); a renderer can be more
+faithful on average and less faithful, or less smooth, where the painter works. The retrained renderers also differ from
+the authors' in their output layer (a sigmoid that bounds colour and mask to $[0, 1]$, Table 4.1), which may give better
+behaved gradients; the oil renderer, which has the same layer and paints no better, argues against that being the whole
+story. A study of the renderers' error on the strokes the painter actually produces would answer it. In practice the
+result means that for the watercolour and the marker pen the retrained light renderers are the better choice for painting;
+they are not yet the default (the experiments of this chapter all use the authors' renderers, so that they can be compared
+with the 2021 code), and `run_ablation.py --renderer checkpoints/<brush>_light_100ep/best.pt` selects them.
+
+**Figure 4.12.** Watercolour paintings of three held-out images with the authors' renderer and with the retrained one
+(seed 0), for the images where the retrained renderer gains most, the median and the least (rule as in Figure 4.4)
+(`report/figures/watercolor_renderers.png`, experiment `2026-10-10_brushes_watercolor_renderers`).
+
+### 4.3.7 Summary of the section
+
+**Table 4.25.** What the Week 6 choices are worth: paired PSNR difference per image (Sections 4.3.2 to 4.3.6), on the ten
+held-out images unless the row says otherwise (the first row is on the tuning images, the Sinkhorn row on the ten images of
+Table 4.22), with the brushes concerned.
+
+| Choice | Alternative | Difference in PSNR (dB) | Where |
+| :--- | :--- | ---: | :--- |
+| Marker stroke starting as a segment of length 0.4 | the reference's dot | $+13.9$ (tuning images; the dot paints almost nothing) | Table 4.18 |
+| Marker start length 0.4 | 0.1 | $+1.18$ | Table 4.20 |
+| Start sizes $[0.2, 0.4]$ | $[0.1, 0.25]$ | $+0.35$ to $+0.39$ (oil, watercolour, tape) | Table 4.20 |
+| Watercolour start opacity $[0.5, 0.7]$ | $[0.98, 1]$ | $+0.30$ | Table 4.20 |
+| Sinkhorn term, weight 0.1 | pixel loss alone | $-0.02$ to $+0.05$, no effect (all brushes) | Table 4.22 |
+| Retrained light renderer | the authors' | $+1.2$ (watercolour, marker; median $+0.7$ to $+0.8$), $+0.0$ to $+0.3$ (tape), $-0.15$ (oil) | Table 4.24 |
+
+With its tuned defaults each brush paints the comparison images at 19.4 (marker pen) to 21.5 dB (tape) in 5.8 s of
+optimization on an idle desktop, the same for every brush because the light renderers have the same size, plus 0.9 (tape)
+to 1.4 s (marker pen) to rasterize the final 512-pixel painting (experiments `2026-10-10_ablation_timing_clean_<brush>`,
+three images, seed 0). The limits are those of Section 4.2.12: one stroke budget, the fixed grid and the light renderers;
+the tuning used three images and the checks ten, so effects below about 0.1 to 0.2 dB cannot be resolved; and every
+choice was tuned with the authors' renderers, so the defaults may not be the best ones for the retrained renderers of
+Section 4.3.6.

@@ -60,6 +60,10 @@ class PainterConfig:
     optimizer: str = "rmsprop"  # "rmsprop" (the original) or "adam"
     centered: bool = False  # RMSprop(centered=True) is what the progressive demo uses
     init: str = "error_map"  # where new strokes start: the error map (the original) or uniformly over the block (ablation only)
+    # how new strokes start (Week 6, per-material tuning); None keeps the brush's YAML ``sampler`` value
+    init_size_range: tuple[float, float] | None = None
+    init_alpha_range: tuple[float, float] | None = None
+    init_chord: float | None = None  # Bezier brushes: length of a new stroke; 0 is the original's dot
     resize: str = "area"  # how the image is shrunk to the blocks: "area" averages, "linear" is OpenCV's default as in the original
     beta_l1: float = 1.0
     beta_ot: float = 0.0  # 0 = pixel loss only (the original's default); the demos use 0.1 with --with_ot_loss
@@ -176,7 +180,10 @@ class PainterEngine:
         psnrs: list[torch.Tensor] = []
         started = time.perf_counter()
         for anchor in range(n):
-            new = torch.from_numpy(self.sampler.sample(targets, current, uniform=cfg.init == "uniform")).to(dev)
+            new = torch.from_numpy(self.sampler.sample(
+                targets, current, uniform=cfg.init == "uniform",
+                size_range=cfg.init_size_range, alpha_range=cfg.init_alpha_range, chord=cfg.init_chord, bounds=cfg.shape_range,
+            )).to(dev)
             with torch.no_grad():
                 x_shape[:, anchor] = new[:, : spec.shape_dim]
                 x_color[:, anchor] = new[:, spec.shape_dim : spec.shape_dim + spec.color_dim]

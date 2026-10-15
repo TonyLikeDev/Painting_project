@@ -1,0 +1,25 @@
+created: '2026-10-10T13:22:30'
+commit: fda5976
+dirty: true
+brushes:
+- label: Oil paint
+  folder: 2026-10-10_ablation_brushes_oilpaintbrush
+  config: paint
+- label: Watercolour
+  folder: 2026-10-10_ablation_brushes_watercolor_final
+  config: paint
+- label: Marker pen
+  folder: 2026-10-10_ablation_brushes_markerpen_fixed
+  config: paint
+- label: Coloured tape
+  folder: 2026-10-10_ablation_brushes_rectangle
+  config: paint
+images:
+- apple
+- iceland
+- jay
+seeds:
+- 0
+- 1
+- 2
+figure_seed: 0

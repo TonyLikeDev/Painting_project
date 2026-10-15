@@ -1,0 +1,25 @@
+created: '2026-10-10T16:04:54'
+commit: fda5976
+dirty: true
+device: cuda:0
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+gpu_name: NVIDIA GeForce RTX 3070
+cuda: '12.8'
+cudnn: 91900
+vram_gb: 8.0
+n: 1000
+brushes:
+- oilpaintbrush
+- watercolor
+- markerpen
+- rectangle
+ours:
+- ours oil light=checkpoints/oilpaintbrush_light_100ep/best.pt
+- ours watercolor light=checkpoints/watercolor_light_100ep/best.pt
+- ours markerpen light=checkpoints/markerpen_light_100ep/best.pt
+- ours tape light=checkpoints/rectangle_light_100ep/best.pt
+- ours tape light 400ep=checkpoints/rectangle_light_400ep/best.pt
+original: true

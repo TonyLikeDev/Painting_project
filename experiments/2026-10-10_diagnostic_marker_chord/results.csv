@@ -1,0 +1,33 @@
+chord,renderer,size,visible,alpha_max,grad
+0,rasterizer,32,0,0,
+0,rasterizer,128,0,0,
+0,neural light,32,0,0.000846293,0.685389
+0,neural full,128,0.833984,0.686549,7624.3
+0.02,rasterizer,32,0,0,
+0.02,rasterizer,128,0.326172,0.290342,
+0.02,neural light,32,0,0.00278088,5.97998
+0.02,neural full,128,0.998047,0.873579,24843.2
+0.05,rasterizer,32,0,0,
+0.05,rasterizer,128,1,0.886918,
+0.05,neural light,32,0,0.0206147,161.584
+0.05,neural full,128,1,0.89901,12645.3
+0.075,rasterizer,32,0.208984,0.185516,
+0.075,rasterizer,128,1,0.886918,
+0.075,neural light,32,0.259766,0.333203,3749.67
+0.075,neural full,128,1,0.905239,10963.5
+0.1,rasterizer,32,0.710938,0.630959,
+0.1,rasterizer,128,1,0.886918,
+0.1,neural light,32,0.996094,0.859427,5890.24
+0.1,neural full,128,1,0.912156,10776.4
+0.125,rasterizer,32,0.978516,0.868015,
+0.125,rasterizer,128,1,0.886918,
+0.125,neural light,32,1,0.911062,1685.72
+0.125,neural full,128,1,0.918537,11058.6
+0.15,rasterizer,32,1,0.886918,
+0.15,rasterizer,128,1,0.886918,
+0.15,neural light,32,1,0.929387,1550.29
+0.15,neural full,128,1,0.924792,11338.9
+0.2,rasterizer,32,1,0.886918,
+0.2,rasterizer,128,1,0.886918,
+0.2,neural light,32,1,0.947883,1526.35
+0.2,neural full,128,1,0.935568,12015.1

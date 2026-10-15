@@ -1,0 +1,10 @@
+image,config,seed,grid,strokes,beta_ot,ot_epsilon,ot_iters,optimize_s,render_s,psnr,ssim,lpips,neural_psnr,steps_to_22db,steps_to_24db,device,renderer
+apple,paint,0,5,500,0,0.01,5,16.3464,1.58658,20.0915,0.517295,0.538716,25.2786,261,360,cuda:0,original-light
+apple,paint,1,5,500,0,0.01,5,15.9586,1.63139,20.2243,0.522047,0.538411,25.5061,247,353,cuda:0,original-light
+apple,paint,2,5,500,0,0.01,5,6.64648,1.48736,20.165,0.520992,0.539925,25.2749,245,340,cuda:0,original-light
+iceland,paint,0,5,500,0,0.01,5,6.42737,1.53042,19.8945,0.546765,0.53271,25.3882,277,381,cuda:0,original-light
+iceland,paint,1,5,500,0,0.01,5,6.3903,1.6155,19.7053,0.545034,0.537935,25.0187,284,429,cuda:0,original-light
+iceland,paint,2,5,500,0,0.01,5,6.35778,1.53232,19.5951,0.545898,0.535464,25.1707,308,429,cuda:0,original-light
+jay,paint,0,5,500,0,0.01,5,6.36848,1.53745,20.839,0.535604,0.481812,26.5104,230,300,cuda:0,original-light
+jay,paint,1,5,500,0,0.01,5,6.31813,1.55234,21.4568,0.544189,0.472439,27.0565,232,311,cuda:0,original-light
+jay,paint,2,5,500,0,0.01,5,6.40434,1.52247,21.2441,0.53586,0.472379,26.6893,232,308,cuda:0,original-light

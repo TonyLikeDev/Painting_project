@@ -73,11 +73,13 @@ class StrokeSampler:
             cy[i], cx[i] = (index // r) / r, (index % r) / r
         return cy, cx
 
-    def sample(self, target: torch.Tensor, canvas: torch.Tensor, uniform: bool = False) -> np.ndarray:
+    def sample(self, target: torch.Tensor, canvas: torch.Tensor, uniform: bool = False, **init) -> np.ndarray:
         """New initial parameters ``(B, d)`` for the blocks of ``target`` and ``canvas`` (both ``(B, 3, S, S)``).
 
         ``uniform=True`` draws the centres uniformly over the block instead of from the error map (the colour is still the
         target's at the centre). The original never does this; it exists for the ablation of the initialization.
+        ``init`` overrides the brush's YAML ``sampler`` ranges (``size_range``, ``alpha_range``, ``chord``; ``None`` keeps
+        the YAML value), see ``ProceduralRasterizer.initial_params_at``.
         """
         if uniform:
             weights = np.ones((target.shape[0], *target.shape[-2:]), dtype=np.float32)
@@ -89,5 +91,5 @@ class StrokeSampler:
         out = np.empty((len(cy), self.rasterizer.dim), dtype=np.float32)
         for i in range(len(cy)):
             color = image[i, int(cy[i] * size), int(cx[i] * size), :]  # nearest pixel, as the original
-            out[i] = self.rasterizer.initial_params_at(cx[i], cy[i], color)
+            out[i] = self.rasterizer.initial_params_at(cx[i], cy[i], color, **init)
         return out

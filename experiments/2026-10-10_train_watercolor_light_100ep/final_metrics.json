@@ -1,0 +1,17 @@
+{
+  "run": "watercolor_light_100ep",
+  "device": "cuda:0",
+  "epochs_done": 100,
+  "best_psnr_mean": 25.31377410888672,
+  "last": {
+    "psnr_fg": 25.22947120666504,
+    "psnr_alpha": 25.387723922729492,
+    "psnr_mean": 25.308597564697266,
+    "ssim_fg": 0.922856941819191,
+    "ssim_alpha": 0.9337358325719833
+  },
+  "wall_seconds": 307.2583296999801,
+  "train_seconds_total": 7893.986099999996,
+  "experiment_dir": "G:\\Github\\Painting_project\\experiments\\2026-10-10_train_watercolor_light_100ep",
+  "checkpoint_dir": "G:\\Github\\Painting_project\\checkpoints\\watercolor_light_100ep"
+}

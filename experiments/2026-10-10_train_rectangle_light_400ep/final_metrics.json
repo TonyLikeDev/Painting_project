@@ -1,0 +1,17 @@
+{
+  "run": "rectangle_light_400ep",
+  "device": "cuda:0",
+  "epochs_done": 400,
+  "best_psnr_mean": 28.52340030670166,
+  "last": {
+    "psnr_fg": 28.551313400268555,
+    "psnr_alpha": 28.47860336303711,
+    "psnr_mean": 28.514958381652832,
+    "ssim_fg": 0.9646818488836288,
+    "ssim_alpha": 0.964197188615799
+  },
+  "wall_seconds": 180.12420739998925,
+  "train_seconds_total": 3014.568320000001,
+  "experiment_dir": "G:\\Github\\Painting_project\\experiments\\2026-10-10_train_rectangle_light_400ep",
+  "checkpoint_dir": "G:\\Github\\Painting_project\\checkpoints\\rectangle_light_400ep"
+}

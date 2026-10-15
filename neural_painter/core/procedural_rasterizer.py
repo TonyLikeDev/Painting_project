@@ -38,6 +38,7 @@ BEZIER_SAMPLES = 100
 VISIBILITY_THRESHOLD = 0.025  # renderer.check_stroke: strokes thinner than this are not drawn
 LARGE_TEXTURE_AREA_FRACTION = 0.1  # oil brush: switch to the large texture above this area fraction
 MIN_MARKER_CHORD_PX = 4  # marker pen: skip strokes whose end points fall on (almost) the same pixel
+INIT_BOUNDS = (0.1, 0.9)  # default shape range (the painter passes its own); a stroke started with chord > 0 is kept inside it
 
 OIL_TEXTURE_FILES = {
     "small_vertical": "brush_fromweb2_small_vertical.png",
@@ -219,14 +220,23 @@ class ProceduralRasterizer:
         shape = (self.dim,) if n is None else (int(n), self.dim)
         return self.rng.random(shape, dtype=np.float32)
 
-    def initial_params_at(self, cx: float, cy: float, color) -> np.ndarray:
+    def initial_params_at(self, cx: float, cy: float, color, **overrides) -> np.ndarray:
         """Brush-specific initial parameters for a new stroke centred at ``(cx, cy)`` with ``color``.
 
         Port of the per-brush branches of the original ``random_stroke_params_sampler``:
         Bezier end points collapse onto the centre, sizes / alpha are drawn from the
         ranges in the YAML ``sampler`` section, and colours are copied from the target.
+
+        ``overrides`` replace YAML ``sampler`` entries for this call (``None`` values are ignored): ``size_range``,
+        ``alpha_range``, ``theta_range`` and ``chord``, plus ``bounds``, the painter's shape range (default
+        :data:`INIT_BOUNDS`). ``chord > 0`` (Bezier brushes only, Week 6) starts the stroke as a straight segment of that
+        length in a random direction instead of a dot, because the light marker renderer draws nothing for a stroke shorter
+        than about 0.075 of the block and so gives it no gradient (``experiments/2026-10-10_diagnostic_marker_chord``). The
+        segment is centred on ``(cx, cy)`` and moved inwards only as far as needed, axis by axis, to keep both ends inside
+        ``bounds``. ``chord = 0`` makes no extra random draw and gives exactly the draws of the Week 5 painter, which (like the
+        Week 3 port) matches the reference sampler in distribution, not draw for draw: the reference uses Python's ``random``.
         """
-        s = self.spec.sampler
+        s = {**self.spec.sampler, **{k: v for k, v in overrides.items() if v is not None}}
         size_lo, size_hi = s.get("size_range", [0.1, 0.25])
         alpha_lo, alpha_hi = s.get("alpha_range", [0.8, 0.98])
         theta_lo, theta_hi = s.get("theta_range", [0.0, 1.0])
@@ -236,9 +246,23 @@ class ProceduralRasterizer:
         if self.name in ("markerpen", "watercolor"):
             xs = [cx, cy, cx, cy, cx, cy]
             radii = [float(v) for v in self.rng.uniform(size_lo, size_hi, 2)]
+            chord = float(s.get("chord", 0.0))
+            if chord > 0:
+                lo, hi = s.get("bounds", INIT_BOUNDS)
+                if chord > hi - lo:
+                    raise ValueError(f"chord {chord} is longer than the shape range [{lo}, {hi}] allows")
+                phi = float(self.rng.uniform(0.0, np.pi))
+                dx, dy = 0.5 * chord * np.cos(phi), 0.5 * chord * np.sin(phi)
+                mx = float(np.clip(cx, lo + abs(dx), hi - abs(dx)))  # moved inwards only as far as each end needs
+                my = float(np.clip(cy, lo + abs(dy), hi - abs(dy)))
+                xs = [mx - dx, my - dy, 0.5, 0.5, mx + dx, my + dy]  # control point mid-chord: a straight segment
+            elif chord < 0:
+                raise ValueError(f"chord must be >= 0, got {chord}")
             colors = rgb if self.name == "markerpen" else rgb + rgb
             params = xs + radii + colors + alpha
         elif self.name in ("oilpaintbrush", "rectangle"):
+            if s.get("chord"):
+                raise ValueError(f"{self.name}: a start length (chord) applies to the Bezier brushes only")
             wh = [float(v) for v in self.rng.uniform(size_lo, size_hi, 2)]
             theta = [float(self.rng.uniform(theta_lo, theta_hi))]
             colors = rgb + rgb if self.name == "oilpaintbrush" else rgb

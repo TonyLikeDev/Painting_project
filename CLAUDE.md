@@ -68,7 +68,16 @@ venv/                      local virtual environment (git-ignored)
   that starts no new chunk after 20 minutes and is simply started again. Do not run the tests or other heavy work
   while a timed experiment runs: timings are the one thing they spoil.
 - CUDA runs are not bit-reproducible by default (cuDNN picks algorithms by call); pass `--deterministic` to the
-  experiment scripts for exact repeats. The desktop's speed also varies by a factor of two over a day.
+  experiment scripts for exact repeats (every Week 6 run did, and repeated runs matched to every digit). The desktop's
+  speed also varies by a factor of two over a day.
+- Renderer training is limited by the CPU rasterizer, so its speed depends on the brush (light renderers, 50k strokes per
+  epoch): tape about 6,000 strokes/s (100 epochs in 14 min), oil 1,600 (51 min), watercolour 630 (2.2 h), marker 420 (3.3 h).
+- Week 6 ran up to three PyTorch processes at once (two trainings and one painting job) only after other programs were
+  closed; with Brave and Steam open, two processes exhausted the commit limit and both died (they resume cleanly).
+- The brush defaults changed in Week 6 (`configs/*.yaml`, `sampler`): start sizes [0.2, 0.4] for oil, watercolour and tape,
+  watercolour start opacity [0.5, 0.7], marker start length (`chord`) 0.4. Runs made before (all of Week 5) used the
+  reference starts; `init_size_range=0.1:0.25` (and `init_chord=0`, `init_alpha_range=0.98:1.0`) reproduce them, and
+  `run_ablation.py` now records the start ranges in each folder and refuses to resume a folder painted under other ones.
 
 ## Conventions that must not drift
 
@@ -128,6 +137,10 @@ venv/Scripts/python.exe scripts/loss_gradients.py --name gradient_ratio         
 venv/Scripts/python.exe scripts/compare_with_original.py --name oil_fixed_grid                      # the original demo.py against ours, same images, same scoring
 venv/Scripts/python.exe scripts/score_lpips.py experiments/<folder>                                 # fill the lpips column afterwards (needs the cached AlexNet weights)
 venv/Scripts/python.exe scripts/device_check.py            # install / tests / speed / training smoke check; run it on the MacBook
+venv/Scripts/python.exe scripts/marker_chord.py            # which renderers draw a marker stroke of a given length (Week 6 diagnostic)
+venv/Scripts/python.exe scripts/compare_brushes.py "Oil=experiments/<a>" "Tape=experiments/<b>#config" --name brush_comparison   # one table + image grid over several folders
+venv/Scripts/python.exe scripts/paired_folders.py --base experiments/<a>#cfg --other experiments/<b>#cfg   # paired per-image statistics across two folders (e.g. two renderers)
+venv/Scripts/python.exe scripts/plot_marker_chord.py experiments/<diagnostic> experiments/<sweep>      # marker start-length figure
 venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available())"
 cd stylized-neural-painting && ../venv/Scripts/python.exe demo_prog.py --img_path ./test_images/apple.jpg \
   --canvas_color white --max_m_strokes 500 --max_divide 5 --renderer oilpaintbrush \

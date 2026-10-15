@@ -9,7 +9,8 @@ A *config* is ``NAME=BETA_OT[:EPSILON[:ITERS]][@GRID][,FIELD=VALUE...]``: ``pixe
 default), ``ot=0.1`` adds the Sinkhorn term with weight 0.1 (the original's ``--with_ot_loss``), ``ot1=1:0.01:5`` sets the
 weight, the regularization and the iteration count, and ``full=0@1`` paints with a 1 x 1 grid instead of ``--grid`` (the stroke
 budget ``--strokes`` is split over the blocks of that grid). Fields of ``PainterConfig`` can be set after commas, for example
-``flat=0,init=uniform`` (stroke centres drawn uniformly instead of from the error map). Several configs on the same images and
+``flat=0,init=uniform`` (stroke centres drawn uniformly instead of from the error map) or ``long=0,init_chord=0.15,init_size_range=0.05:0.15``
+(how new strokes start, Week 6). Several configs on the same images and
 seeds make a paired comparison.
 
 The script is resumable: with ``--dir`` pointing at an existing experiment folder it skips the runs already in
@@ -60,8 +61,14 @@ def _flag(value: str) -> bool:
     return value.lower() in ("1", "true", "yes")
 
 
+def _range(value: str) -> tuple[float, float]:
+    lo, hi = (float(v) for v in value.split(":"))
+    return lo, hi
+
+
 OVERRIDES = {  # PainterConfig fields that a config can set by name, and how to read their value
     "init": str, "resize": str, "lr": float, "optimizer": str, "centered": _flag, "morphology": _flag, "ot_channel": str, "ot_lse": str,
+    "init_chord": float, "init_size_range": _range, "init_alpha_range": _range,  # ranges are written LO:HI
 }
 
 
@@ -104,6 +111,27 @@ def load_renderer_for(spec: str, brush: str, device):
         light = spec.endswith("light")
         return load_original_checkpoint(original_checkpoint_path(brush, light), brush, light), spec
     return load_renderer(spec, brush), Path(spec).name
+
+
+def start_ranges(brush: str) -> dict:
+    """The brush's YAML ``sampler`` section: the start ranges a config without ``init_*`` overrides paints with."""
+    return {k: (list(v) if isinstance(v, (list, tuple)) else v) for k, v in get_brush(brush).sampler.items()}
+
+
+def check_resume(out: Path, brush: str) -> None:
+    """Refuse to add runs to ``out`` when the brush's start ranges differ from those its runs were painted with.
+
+    Week 6 changed the defaults (larger start sizes, the marker's start length), so a resumed folder could otherwise mix
+    runs of one config name painted under two different starts. Folders made before the ranges were recorded only warn.
+    """
+    path = out / "config.yaml"
+    recorded = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("brush_sampler") if path.is_file() else None
+    now = start_ranges(brush)
+    if recorded is None:
+        print(f"warning: {out.name} does not record the start ranges its runs used; new runs use {now}", flush=True)
+    elif recorded != now:
+        raise SystemExit(f"{out.name} was painted with start ranges {recorded}, but the brush now has {now}: start a new folder, "
+                         "or pin the old ranges with init_* overrides in a new folder")
 
 
 def read_done(path: Path) -> set[tuple[str, str, int]]:
@@ -155,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         out = args.dir if args.dir.is_absolute() else ROOT / args.dir
         if not out.is_dir():
             raise SystemExit(f"{out} does not exist; leave out --dir to start a new experiment")
+        check_resume(out, brush)
     else:
         out = new_experiment_dir(EXPERIMENT_ROOT, args.name, kind="ablation")
     results_path = out / "results.csv"
@@ -162,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         info = {"created": datetime.now().isoformat(timespec="seconds"), **commit_info(), **device_summary(device), "brush": brush,
                 "renderer": renderer_name, "grid": args.grid, "strokes_per_block": per_block, "total_strokes": per_block * args.grid**2,
                 "images": [p.stem for p in images], "seeds": args.seeds, "lpips": bool(args.lpips), "iters_per_stroke": args.iters or "original",
-                "cudnn_deterministic": bool(args.deterministic),
+                "cudnn_deterministic": bool(args.deterministic), "brush_sampler": start_ranges(brush),
                 "configs": {n: {**c, "grid": plans[n][1], "strokes_per_block": plans[n][2], "total_strokes": plans[n][2] * plans[n][1] ** 2}
                             for n, c in args.configs},
                 "painter_defaults": config_dict(PainterConfig(strokes_per_block=per_block))}

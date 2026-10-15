@@ -1,0 +1,4 @@
+image,config,seed,grid,strokes,beta_ot,ot_epsilon,ot_iters,optimize_s,render_s,psnr,ssim,lpips,neural_psnr,steps_to_22db,steps_to_24db,device,renderer
+apple,paint,0,5,500,0,0.01,5,6.08986,1.33882,20.7328,0.491159,0.586224,26.1762,257,338,cuda:0,original-light
+iceland,paint,0,5,500,0,0.01,5,5.73527,1.3785,20.2958,0.498976,0.57224,25.8058,277,355,cuda:0,original-light
+jay,paint,0,5,500,0,0.01,5,5.68948,1.30077,21.4807,0.530467,0.471893,28.2305,230,278,cuda:0,original-light

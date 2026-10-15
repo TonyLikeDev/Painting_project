@@ -1,0 +1,19 @@
+created: '2026-10-10T15:36:16'
+commit: fda5976
+dirty: true
+brushes:
+- label: Original renderer
+  folder: 2026-10-10_ablation_confirm_alpha_watercolor
+  config: low
+- label: Our renderer
+  folder: 2026-10-10_ablation_heldout_ours_watercolor
+  config: paint
+images:
+- 51e3d4424d53b10ff3d8992cc12c30771037dbf85254784b7d297ed7934b_640
+- 54e2d3424c54a414f1dc8460962e33791c3ad6e04e507749712e79d29244c3_640
+- pexels-beratorer-30650522
+seeds:
+- 0
+- 1
+- 2
+figure_seed: 0

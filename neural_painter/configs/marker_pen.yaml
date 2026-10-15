@@ -26,6 +26,11 @@ renderer:
 sampler:
   size_range: [0.1, 0.25]
   alpha_range: [0.8, 0.98]
+  # Week 6: a new stroke starts as a straight segment of this length (block units) instead of the original's dot, which the
+  # light renderer does not draw and so cannot grow (experiments/2026-10-10_diagnostic_marker_chord). 0.4 was the best of
+  # 0.1 to 0.6 on the tuning images and beat 0.1 by 1.2 dB on 10 held-out ones (*_ablation_tuning_marker_chord*,
+  # *_ablation_confirm_start_markerpen). chord: 0 restores the original.
+  chord: 0.4
 defaults:
   max_strokes: 500
   max_divide: 5

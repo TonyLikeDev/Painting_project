@@ -24,8 +24,12 @@ renderer:
   out_size_full: 128
   out_size_light: 32
 sampler:
-  size_range: [0.1, 0.25]
-  alpha_range: [0.98, 1.0]
+  # Week 6: larger strokes to start from (the original: [0.1, 0.25]); +0.35 dB PSNR, better SSIM and LPIPS on 10 held-out
+  # images (experiments/*_ablation_tuning_size_watercolor, *_ablation_confirm_start_watercolor)
+  size_range: [0.2, 0.4]
+  # Week 6: start translucent (the original: [0.98, 1.0]); +0.30 dB PSNR, SSIM +0.006, LPIPS -0.009 (not significant) on 10
+  # held-out images (experiments/*_ablation_tuning_alpha_watercolor*, *_ablation_confirm_alpha_watercolor)
+  alpha_range: [0.5, 0.7]
 defaults:
   max_strokes: 500
   max_divide: 5

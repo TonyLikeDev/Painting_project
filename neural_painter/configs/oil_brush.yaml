@@ -25,7 +25,9 @@ renderer:
   out_size_light: 32
 sampler:
   # ranges used when a new stroke is initialized from the error map (Week 5)
-  size_range: [0.1, 0.25]
+  # Week 6: larger strokes to start from (the original, and every Week 5 experiment: [0.1, 0.25]); +0.39 dB PSNR on 10 held-out
+  # images, SSIM +0.005, LPIPS unchanged (-0.003, not significant) (experiments/*_ablation_tuning_size_oilpaintbrush, *_ablation_confirm_start_oilpaintbrush)
+  size_range: [0.2, 0.4]
   theta_range: [0.0, 1.0]
   alpha_range: [0.98, 1.0]
 defaults:

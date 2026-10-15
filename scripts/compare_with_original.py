@@ -8,7 +8,8 @@ per run goes to ``results.csv`` in the layout of ``run_ablation.py`` (plus the w
 ``summarize_ablation.py --baseline original`` gives the paired comparison of the two implementations.
 
 A third config, ``ours_linear``, is our engine with the original's way of shrinking the target to the blocks (OpenCV's default
-bilinear resize instead of area averaging), to show how much of any difference comes from that one choice.
+bilinear resize instead of area averaging) and the original's starting stroke sizes (Week 6 enlarged the default), so that it
+differs from the original in implementation only; ``ours`` is this package's defaults.
 
 The original writes one PNG per stroke and a video next to its result; they are deleted after the final image has been read.
 The script is resumable with ``--dir`` and ``--max-minutes``, like ``run_ablation.py``; a config added later (``ours_linear`` was)
@@ -43,13 +44,14 @@ from neural_painter.models.neural_renderer import load_original_checkpoint, orig
 from neural_painter.pipeline import metrics  # noqa: E402
 from neural_painter.pipeline.painter_engine import PainterConfig, config_dict, paint_fixed_grid, save_strokes_npz  # noqa: E402
 from neural_painter.pipeline.train_renderer import EXPERIMENT_ROOT, commit_info, lower_process_priority, new_experiment_dir  # noqa: E402
-from run_ablation import FIELDS, eval_images, read_done  # noqa: E402
+from run_ablation import FIELDS, check_resume, eval_images, read_done, start_ranges  # noqa: E402
 
 BRUSH = canonical_brush_name("oil")
 ORIGINAL = ROOT / "stylized-neural-painting"
 CHECKPOINT_DIR = "checkpoints_G_oilpaintbrush_light"  # relative to the original checkout, as its demo expects
 CONFIGS = ("original", "ours", "ours_linear")  # "ours_linear": our engine with the original's bilinear shrinking of the target (resize="linear")
 ALL_FIELDS = FIELDS + ["wall_s"]
+ORIGINAL_SETTINGS = {"resize": "linear", "init_size_range": (0.1, 0.25)}  # what "ours_linear" takes from the original
 
 
 def original_device() -> str:
@@ -107,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
         out = args.dir if args.dir.is_absolute() else ROOT / args.dir
         if not out.is_dir():
             raise SystemExit(f"{out} does not exist; leave out --dir to start a new experiment")
+        check_resume(out, BRUSH)
     else:
         out = new_experiment_dir(EXPERIMENT_ROOT, args.name, kind="check")
     results_path = out / "results.csv"
@@ -114,7 +117,8 @@ def main(argv: list[str] | None = None) -> int:
         info = {"created": datetime.now().isoformat(timespec="seconds"), **commit_info(), **device_summary(device), "brush": BRUSH,
                 "grid": args.grid, "strokes_per_block": per_block, "total_strokes": per_block * args.grid**2, "images": [p.stem for p in images],
                 "repeats": args.repeats, "cudnn_deterministic": bool(args.deterministic), "original": "demo.py of stylized-neural-painting, run unmodified (unseeded), pixel loss, light oil renderer, white canvas",
-                "ours": config_dict(PainterConfig(strokes_per_block=per_block))}
+                "ours": config_dict(PainterConfig(strokes_per_block=per_block)), "brush_sampler": start_ranges(BRUSH),
+                "ours_linear": config_dict(PainterConfig(strokes_per_block=per_block, **ORIGINAL_SETTINGS))}
         (out / "config.yaml").write_text(yaml.safe_dump(info, sort_keys=False), encoding="utf-8")
 
     done = read_done(results_path)
@@ -133,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             final, row["wall_s"] = run_original(path, run_dir, args.grid, args.strokes)
             row.update(renderer="original demo.py", device=original_device())  # the demo picks its own device
         else:
-            cfg = PainterConfig(strokes_per_block=per_block, seed=repeat, resize="linear" if config == "ours_linear" else "area")
+            cfg = PainterConfig(strokes_per_block=per_block, seed=repeat, **(ORIGINAL_SETTINGS if config == "ours_linear" else {}))
             paint = paint_fixed_grid(target, renderer, cfg, grid=args.grid, device=device)
             final = paint.image
             row.update(optimize_s=paint.result.seconds, render_s=paint.render_seconds, neural_psnr=float(paint.result.psnr[-1]), renderer="original-light",

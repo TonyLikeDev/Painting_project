@@ -36,7 +36,8 @@ def test_both_implementations_paint_the_same_image_and_are_scored_alike(tmp_path
     for r in rows.values():
         assert 0 < float(r["psnr"]) < 100 and 0 < float(r["ssim"]) <= 1 and float(r["wall_s"]) > 0 and r["strokes"] == "8"
     assert rows["original"]["device"] == "cpu" and rows["original"]["optimize_s"] == "" and float(rows["ours"]["optimize_s"]) > 0
-    assert rows["ours"]["psnr"] != rows["ours_linear"]["psnr"]  # the two shrinking filters give different targets, hence different paintings
+    assert compare.ORIGINAL_SETTINGS == {"resize": "linear", "init_size_range": (0.1, 0.25)}  # what ours_linear takes from the original
+    assert rows["ours"]["psnr"] != rows["ours_linear"]["psnr"]  # different shrinking filter and start sizes, hence different paintings
     run = folder / "runs" / "apple" / "original_s0"
     assert (run / "apple_final.png").is_file() and (run / "apple_strokes.npz").is_file() and (run / "log.txt").is_file()
     assert not list(run.glob("*_rendered_stroke_*.png")) and not list(run.glob("*.mp4"))  # frames and video are deleted after use

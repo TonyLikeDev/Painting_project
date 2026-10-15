@@ -1,0 +1,17 @@
+{
+  "run": "markerpen_light_100ep",
+  "device": "cuda:0",
+  "epochs_done": 100,
+  "best_psnr_mean": 23.949504852294922,
+  "last": {
+    "psnr_fg": 23.999540328979492,
+    "psnr_alpha": 23.89801788330078,
+    "psnr_mean": 23.948779106140137,
+    "ssim_fg": 0.9098462611436844,
+    "ssim_alpha": 0.9126136153936386
+  },
+  "wall_seconds": 518.1222057999985,
+  "train_seconds_total": 11847.660999999998,
+  "experiment_dir": "G:\\Github\\Painting_project\\experiments\\2026-10-10_train_markerpen_light_100ep",
+  "checkpoint_dir": "G:\\Github\\Painting_project\\checkpoints\\markerpen_light_100ep"
+}

@@ -22,7 +22,9 @@ renderer:
   out_size_full: 128
   out_size_light: 32
 sampler:
-  size_range: [0.1, 0.25]
+  # Week 6: larger strokes to start from (the original: [0.1, 0.25]); +0.35 dB PSNR, better SSIM and LPIPS on 10 held-out
+  # images (experiments/*_ablation_tuning_size_rectangle, *_ablation_confirm_start_rectangle)
+  size_range: [0.2, 0.4]
   theta_range: [0.0, 0.0]
   alpha_range: [0.8, 0.98]
 defaults:

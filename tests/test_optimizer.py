@@ -47,6 +47,7 @@ def two_colour_blocks(blocks: int = 2, size: int = 16) -> torch.Tensor:
 
 
 def engine(seed: int = 0, **overrides) -> PainterEngine:
+    overrides.setdefault("init_size_range", (0.1, 0.25))  # the start the toy thresholds were calibrated with (Week 5)
     cfg = PainterConfig(strokes_per_block=5, iters_per_stroke=10, seed=seed, **overrides)
     return PainterEngine(ToyRenderer(), cfg, device="cpu")
 

@@ -1,0 +1,209 @@
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 1..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch   1/100 | loss  3.68099 | psnr fg 17.23 alpha 15.24 mean 16.24* | ssim 0.613/0.473 | lr 2.0e-04 |  123.1 s |     406 strokes/s
+epoch   2/100 | loss  1.75357 | psnr fg 19.65 alpha 18.77 mean 19.21* | ssim 0.747/0.729 | lr 2.0e-04 |  123.0 s |     406 strokes/s
+epoch   3/100 | loss  1.06712 | psnr fg 20.72 alpha 20.09 mean 20.41* | ssim 0.798/0.801 | lr 2.0e-04 |  120.6 s |     414 strokes/s
+epoch   4/100 | loss  0.88857 | psnr fg 21.12 alpha 20.70 mean 20.91* | ssim 0.816/0.828 | lr 2.0e-04 |  118.3 s |     422 strokes/s
+stopping after epoch 4: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 20.91 dB, 8.1 min this session, 8.1 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 5..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch   5/100 | loss  0.80991 | psnr fg 21.35 alpha 20.92 mean 21.13* | ssim 0.830/0.843 | lr 2.0e-04 |  127.3 s |     393 strokes/s
+epoch   6/100 | loss  0.75191 | psnr fg 21.63 alpha 21.31 mean 21.47* | ssim 0.840/0.854 | lr 2.0e-04 |  119.1 s |     420 strokes/s
+epoch   7/100 | loss  0.70271 | psnr fg 21.76 alpha 21.48 mean 21.62* | ssim 0.847/0.859 | lr 2.0e-04 |  119.1 s |     420 strokes/s
+epoch   8/100 | loss  0.67277 | psnr fg 21.97 alpha 21.72 mean 21.85* | ssim 0.855/0.866 | lr 2.0e-04 |  118.9 s |     420 strokes/s
+stopping after epoch 8: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 21.85 dB, 8.1 min this session, 16.2 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 9..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch   9/100 | loss  0.63495 | psnr fg 22.20 alpha 21.94 mean 22.07* | ssim 0.855/0.865 | lr 2.0e-04 |  122.4 s |     408 strokes/s
+epoch  10/100 | loss  0.61321 | psnr fg 22.35 alpha 22.07 mean 22.21* | ssim 0.864/0.873 | lr 2.0e-04 |  118.6 s |     422 strokes/s
+epoch  11/100 | loss  0.58655 | psnr fg 22.45 alpha 22.25 mean 22.35* | ssim 0.867/0.877 | lr 2.0e-04 |  123.0 s |     406 strokes/s
+epoch  12/100 | loss  0.57587 | psnr fg 22.57 alpha 22.38 mean 22.48* | ssim 0.873/0.882 | lr 2.0e-04 |  116.7 s |     428 strokes/s
+stopping after epoch 12: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 22.48 dB, 8.1 min this session, 24.2 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 13..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  13/100 | loss  0.55857 | psnr fg 22.41 alpha 22.41 mean 22.41  | ssim 0.875/0.884 | lr 2.0e-04 |  129.7 s |     385 strokes/s
+epoch  14/100 | loss  0.55100 | psnr fg 22.63 alpha 22.49 mean 22.56* | ssim 0.878/0.887 | lr 2.0e-04 |  120.7 s |     414 strokes/s
+epoch  15/100 | loss  0.53771 | psnr fg 22.75 alpha 22.70 mean 22.73* | ssim 0.882/0.889 | lr 2.0e-04 |  117.9 s |     424 strokes/s
+epoch  16/100 | loss  0.52561 | psnr fg 22.79 alpha 22.62 mean 22.70  | ssim 0.877/0.885 | lr 2.0e-04 |  117.1 s |     427 strokes/s
+stopping after epoch 16: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 22.73 dB, 8.2 min this session, 32.3 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 17..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  17/100 | loss  0.52350 | psnr fg 22.85 alpha 22.73 mean 22.79* | ssim 0.884/0.891 | lr 2.0e-04 |  124.9 s |     400 strokes/s
+epoch  18/100 | loss  0.52335 | psnr fg 23.08 alpha 22.90 mean 22.99* | ssim 0.887/0.893 | lr 2.0e-04 |  121.0 s |     413 strokes/s
+epoch  19/100 | loss  0.51097 | psnr fg 23.02 alpha 23.05 mean 23.04* | ssim 0.889/0.896 | lr 2.0e-04 |  116.0 s |     431 strokes/s
+epoch  20/100 | loss  0.50345 | psnr fg 23.03 alpha 22.92 mean 22.98  | ssim 0.887/0.893 | lr 2.0e-04 |  116.1 s |     430 strokes/s
+stopping after epoch 20: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.04 dB, 8.0 min this session, 40.2 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 21..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  21/100 | loss  0.49604 | psnr fg 22.99 alpha 22.65 mean 22.82  | ssim 0.889/0.895 | lr 2.0e-04 |  122.7 s |     407 strokes/s
+epoch  22/100 | loss  0.49829 | psnr fg 23.09 alpha 22.94 mean 23.02  | ssim 0.893/0.898 | lr 2.0e-04 |  116.6 s |     429 strokes/s
+epoch  23/100 | loss  0.48645 | psnr fg 23.24 alpha 22.99 mean 23.11* | ssim 0.893/0.898 | lr 2.0e-04 |  119.2 s |     419 strokes/s
+epoch  24/100 | loss  0.48105 | psnr fg 23.30 alpha 22.94 mean 23.12* | ssim 0.895/0.900 | lr 2.0e-04 |  116.7 s |     428 strokes/s
+epoch  25/100 | loss  0.47893 | psnr fg 23.25 alpha 23.00 mean 23.13* | ssim 0.894/0.899 | lr 2.0e-04 |  119.0 s |     420 strokes/s
+stopping after epoch 25: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.13 dB, 10.0 min this session, 50.1 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 26..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  26/100 | loss  0.43494 | psnr fg 23.68 alpha 23.54 mean 23.61* | ssim 0.903/0.906 | lr 2.0e-05 |  122.6 s |     408 strokes/s
+epoch  27/100 | loss  0.42616 | psnr fg 23.69 alpha 23.49 mean 23.59  | ssim 0.904/0.907 | lr 2.0e-05 |  121.0 s |     413 strokes/s
+epoch  28/100 | loss  0.42165 | psnr fg 23.69 alpha 23.60 mean 23.65* | ssim 0.903/0.907 | lr 2.0e-05 |  117.5 s |     425 strokes/s
+epoch  29/100 | loss  0.41944 | psnr fg 23.74 alpha 23.53 mean 23.63  | ssim 0.905/0.908 | lr 2.0e-05 |  118.9 s |     420 strokes/s
+stopping after epoch 29: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.65 dB, 8.1 min this session, 58.1 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 30..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  30/100 | loss  0.41730 | psnr fg 23.72 alpha 23.62 mean 23.67* | ssim 0.905/0.908 | lr 2.0e-05 |  123.1 s |     406 strokes/s
+epoch  31/100 | loss  0.41761 | psnr fg 23.78 alpha 23.56 mean 23.67* | ssim 0.905/0.908 | lr 2.0e-05 |  118.3 s |     422 strokes/s
+epoch  32/100 | loss  0.42146 | psnr fg 23.76 alpha 23.62 mean 23.69* | ssim 0.904/0.908 | lr 2.0e-05 |  117.9 s |     424 strokes/s
+epoch  33/100 | loss  0.41400 | psnr fg 23.80 alpha 23.65 mean 23.72* | ssim 0.905/0.909 | lr 2.0e-05 |  116.5 s |     429 strokes/s
+epoch  34/100 | loss  0.41827 | psnr fg 23.83 alpha 23.65 mean 23.74* | ssim 0.906/0.910 | lr 2.0e-05 |  116.3 s |     430 strokes/s
+stopping after epoch 34: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.74 dB, 9.9 min this session, 68.0 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 35..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  35/100 | loss  0.41497 | psnr fg 23.82 alpha 23.62 mean 23.72  | ssim 0.906/0.910 | lr 2.0e-05 |  120.3 s |     416 strokes/s
+epoch  36/100 | loss  0.41164 | psnr fg 23.76 alpha 23.62 mean 23.69  | ssim 0.905/0.909 | lr 2.0e-05 |  117.9 s |     424 strokes/s
+epoch  37/100 | loss  0.41343 | psnr fg 23.82 alpha 23.60 mean 23.71  | ssim 0.907/0.910 | lr 2.0e-05 |  115.7 s |     432 strokes/s
+epoch  38/100 | loss  0.41041 | psnr fg 23.79 alpha 23.65 mean 23.72  | ssim 0.906/0.909 | lr 2.0e-05 |  115.7 s |     432 strokes/s
+epoch  39/100 | loss  0.40883 | psnr fg 23.88 alpha 23.73 mean 23.80* | ssim 0.907/0.911 | lr 2.0e-05 |  119.3 s |     419 strokes/s
+stopping after epoch 39: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.80 dB, 9.9 min this session, 77.8 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 40..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  40/100 | loss  0.41150 | psnr fg 23.85 alpha 23.67 mean 23.76  | ssim 0.908/0.911 | lr 2.0e-05 |  121.7 s |     411 strokes/s
+epoch  41/100 | loss  0.40921 | psnr fg 23.88 alpha 23.76 mean 23.82* | ssim 0.907/0.910 | lr 2.0e-05 |  118.8 s |     421 strokes/s
+epoch  42/100 | loss  0.40962 | psnr fg 23.83 alpha 23.70 mean 23.76  | ssim 0.906/0.910 | lr 2.0e-05 |  119.3 s |     419 strokes/s
+epoch  43/100 | loss  0.40856 | psnr fg 23.88 alpha 23.74 mean 23.81  | ssim 0.908/0.911 | lr 2.0e-05 |  117.2 s |     426 strokes/s
+stopping after epoch 43: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.82 dB, 8.0 min this session, 85.8 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 44..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  44/100 | loss  0.40688 | psnr fg 23.90 alpha 23.77 mean 23.83* | ssim 0.908/0.911 | lr 2.0e-05 |  119.7 s |     418 strokes/s
+epoch  45/100 | loss  0.40656 | psnr fg 23.92 alpha 23.83 mean 23.88* | ssim 0.907/0.911 | lr 2.0e-05 |  119.1 s |     420 strokes/s
+epoch  46/100 | loss  0.40601 | psnr fg 23.92 alpha 23.84 mean 23.88* | ssim 0.908/0.911 | lr 2.0e-05 |  116.6 s |     429 strokes/s
+epoch  47/100 | loss  0.40703 | psnr fg 23.91 alpha 23.83 mean 23.87  | ssim 0.907/0.910 | lr 2.0e-05 |  116.9 s |     428 strokes/s
+epoch  48/100 | loss  0.40842 | psnr fg 23.90 alpha 23.78 mean 23.84  | ssim 0.908/0.911 | lr 2.0e-05 |  116.9 s |     427 strokes/s
+stopping after epoch 48: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.88 dB, 9.9 min this session, 95.6 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 49..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  49/100 | loss  0.40884 | psnr fg 23.85 alpha 23.80 mean 23.82  | ssim 0.909/0.912 | lr 2.0e-05 |  116.9 s |     428 strokes/s
+epoch  50/100 | loss  0.40530 | psnr fg 23.94 alpha 23.78 mean 23.86  | ssim 0.908/0.911 | lr 2.0e-05 |  114.4 s |     437 strokes/s
+epoch  51/100 | loss  0.40229 | psnr fg 23.99 alpha 23.87 mean 23.93* | ssim 0.909/0.912 | lr 2.0e-06 |  117.5 s |     425 strokes/s
+epoch  52/100 | loss  0.40282 | psnr fg 23.99 alpha 23.86 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  114.6 s |     436 strokes/s
+epoch  53/100 | loss  0.40015 | psnr fg 23.99 alpha 23.89 mean 23.94* | ssim 0.910/0.912 | lr 2.0e-06 |  114.6 s |     436 strokes/s
+stopping after epoch 53: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.94 dB, 9.7 min this session, 105.2 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 54..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  54/100 | loss  0.39717 | psnr fg 23.98 alpha 23.89 mean 23.94  | ssim 0.910/0.912 | lr 2.0e-06 |  118.9 s |     420 strokes/s
+epoch  55/100 | loss  0.39864 | psnr fg 23.97 alpha 23.86 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  116.5 s |     429 strokes/s
+epoch  56/100 | loss  0.40168 | psnr fg 23.98 alpha 23.86 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  114.9 s |     435 strokes/s
+epoch  57/100 | loss  0.39730 | psnr fg 23.98 alpha 23.87 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  115.0 s |     435 strokes/s
+epoch  58/100 | loss  0.39758 | psnr fg 23.96 alpha 23.79 mean 23.88  | ssim 0.909/0.912 | lr 2.0e-06 |  113.0 s |     442 strokes/s
+stopping after epoch 58: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.94 dB, 9.7 min this session, 114.9 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 59..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  59/100 | loss  0.40017 | psnr fg 23.98 alpha 23.86 mean 23.92  | ssim 0.910/0.912 | lr 2.0e-06 |  116.8 s |     428 strokes/s
+epoch  60/100 | loss  0.39886 | psnr fg 23.98 alpha 23.86 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  117.2 s |     427 strokes/s
+epoch  61/100 | loss  0.39861 | psnr fg 23.98 alpha 23.87 mean 23.93  | ssim 0.909/0.912 | lr 2.0e-06 |  113.8 s |     439 strokes/s
+epoch  62/100 | loss  0.39448 | psnr fg 23.98 alpha 23.87 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  114.1 s |     438 strokes/s
+epoch  63/100 | loss  0.39562 | psnr fg 23.97 alpha 23.86 mean 23.91  | ssim 0.909/0.912 | lr 2.0e-06 |  115.9 s |     431 strokes/s
+stopping after epoch 63: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.94 dB, 9.7 min this session, 124.5 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 64..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  64/100 | loss  0.39894 | psnr fg 23.97 alpha 23.84 mean 23.91  | ssim 0.909/0.912 | lr 2.0e-06 |  120.2 s |     416 strokes/s
+epoch  65/100 | loss  0.39640 | psnr fg 23.98 alpha 23.88 mean 23.93  | ssim 0.909/0.912 | lr 2.0e-06 |  117.2 s |     426 strokes/s
+epoch  66/100 | loss  0.39964 | psnr fg 23.99 alpha 23.89 mean 23.94* | ssim 0.910/0.913 | lr 2.0e-06 |  117.3 s |     426 strokes/s
+epoch  67/100 | loss  0.39833 | psnr fg 23.97 alpha 23.86 mean 23.91  | ssim 0.910/0.913 | lr 2.0e-06 |  116.2 s |     430 strokes/s
+epoch  68/100 | loss  0.39614 | psnr fg 23.97 alpha 23.85 mean 23.91  | ssim 0.909/0.912 | lr 2.0e-06 |  117.4 s |     426 strokes/s
+stopping after epoch 68: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.94 dB, 9.9 min this session, 134.3 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 69..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  69/100 | loss  0.39923 | psnr fg 23.98 alpha 23.86 mean 23.92  | ssim 0.909/0.912 | lr 2.0e-06 |  118.3 s |     423 strokes/s
+epoch  70/100 | loss  0.40047 | psnr fg 23.99 alpha 23.88 mean 23.93  | ssim 0.909/0.912 | lr 2.0e-06 |  115.8 s |     432 strokes/s
+epoch  71/100 | loss  0.39634 | psnr fg 24.00 alpha 23.88 mean 23.94  | ssim 0.910/0.912 | lr 2.0e-06 |  189.5 s |     264 strokes/s
+epoch  72/100 | loss  0.39598 | psnr fg 24.00 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-06 |  122.2 s |     409 strokes/s
+stopping after epoch 72: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.94 dB, 9.2 min this session, 143.4 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 73..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  73/100 | loss  0.40186 | psnr fg 23.99 alpha 23.88 mean 23.93  | ssim 0.910/0.913 | lr 2.0e-06 |  120.4 s |     415 strokes/s
+epoch  74/100 | loss  0.40060 | psnr fg 24.00 alpha 23.89 mean 23.95* | ssim 0.910/0.913 | lr 2.0e-06 |  119.7 s |     418 strokes/s
+epoch  75/100 | loss  0.39709 | psnr fg 23.98 alpha 23.87 mean 23.92  | ssim 0.910/0.912 | lr 2.0e-06 |  118.9 s |     420 strokes/s
+epoch  76/100 | loss  0.39769 | psnr fg 23.99 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  116.0 s |     431 strokes/s
+epoch  77/100 | loss  0.39822 | psnr fg 23.99 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  117.2 s |     426 strokes/s
+stopping after epoch 77: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.95 dB, 9.9 min this session, 153.3 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 78..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  78/100 | loss  0.39680 | psnr fg 23.99 alpha 23.88 mean 23.93  | ssim 0.910/0.913 | lr 2.0e-07 |  119.4 s |     419 strokes/s
+epoch  79/100 | loss  0.39743 | psnr fg 23.99 alpha 23.87 mean 23.93  | ssim 0.910/0.913 | lr 2.0e-07 |  115.5 s |     433 strokes/s
+epoch  80/100 | loss  0.40109 | psnr fg 23.99 alpha 23.87 mean 23.93  | ssim 0.910/0.913 | lr 2.0e-07 |  118.5 s |     422 strokes/s
+epoch  81/100 | loss  0.39580 | psnr fg 23.99 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  114.1 s |     438 strokes/s
+epoch  82/100 | loss  0.39432 | psnr fg 23.99 alpha 23.88 mean 23.94  | ssim 0.910/0.912 | lr 2.0e-07 |   97.5 s |     512 strokes/s
+stopping after epoch 82: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.95 dB, 9.5 min this session, 162.7 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 83..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  83/100 | loss  0.39922 | psnr fg 24.00 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  124.8 s |     401 strokes/s
+epoch  84/100 | loss  0.39784 | psnr fg 23.99 alpha 23.89 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  121.1 s |     413 strokes/s
+epoch  85/100 | loss  0.39591 | psnr fg 23.99 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  122.1 s |     409 strokes/s
+epoch  86/100 | loss  0.39386 | psnr fg 24.00 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  120.6 s |     415 strokes/s
+stopping after epoch 86: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.95 dB, 8.2 min this session, 170.8 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 87..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  87/100 | loss  0.39281 | psnr fg 24.00 alpha 23.88 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  121.0 s |     413 strokes/s
+epoch  88/100 | loss  0.39756 | psnr fg 24.00 alpha 23.89 mean 23.95* | ssim 0.910/0.913 | lr 2.0e-07 |  125.1 s |     399 strokes/s
+epoch  89/100 | loss  0.39840 | psnr fg 24.00 alpha 23.89 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  125.7 s |     398 strokes/s
+epoch  90/100 | loss  0.39581 | psnr fg 24.00 alpha 23.89 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |  123.3 s |     405 strokes/s
+stopping after epoch 90: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.95 dB, 8.3 min this session, 179.1 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 91..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  91/100 | loss  0.39558 | psnr fg 24.00 alpha 23.89 mean 23.95  | ssim 0.910/0.913 | lr 2.0e-07 |  124.6 s |     401 strokes/s
+epoch  92/100 | loss  0.39785 | psnr fg 24.00 alpha 23.90 mean 23.95* | ssim 0.910/0.913 | lr 2.0e-07 |  114.8 s |     435 strokes/s
+epoch  93/100 | loss  0.39777 | psnr fg 24.00 alpha 23.90 mean 23.95  | ssim 0.910/0.913 | lr 2.0e-07 |  118.9 s |     420 strokes/s
+epoch  94/100 | loss  0.39631 | psnr fg 24.00 alpha 23.89 mean 23.95  | ssim 0.910/0.913 | lr 2.0e-07 |  115.6 s |     432 strokes/s
+epoch  95/100 | loss  0.39601 | psnr fg 24.00 alpha 23.90 mean 23.95* | ssim 0.910/0.913 | lr 2.0e-07 |  114.7 s |     436 strokes/s
+stopping after epoch 95: the 8 minute budget is used up (resume with --resume)
+== paused (time budget): best psnr_mean 23.95 dB, 9.9 min this session, 188.9 min of training in total
+== markerpen_light_100ep on cuda:0 | markerpen light 32px | 5.37 M params | loss l2 | epochs 96..100
+   experiment: G:\Github\Painting_project\experiments\2026-10-10_train_markerpen_light_100ep
+   checkpoints: G:\Github\Painting_project\checkpoints\markerpen_light_100ep
+epoch  96/100 | loss  0.39527 | psnr fg 23.99 alpha 23.89 mean 23.94  | ssim 0.910/0.912 | lr 2.0e-07 |  108.9 s |     459 strokes/s
+epoch  97/100 | loss  0.39883 | psnr fg 23.99 alpha 23.89 mean 23.94  | ssim 0.910/0.913 | lr 2.0e-07 |   99.4 s |     503 strokes/s
+epoch  98/100 | loss  0.39881 | psnr fg 24.00 alpha 23.90 mean 23.95* | ssim 0.910/0.913 | lr 2.0e-07 |  105.5 s |     474 strokes/s
+epoch  99/100 | loss  0.39418 | psnr fg 23.99 alpha 23.90 mean 23.95  | ssim 0.910/0.913 | lr 2.0e-07 |  101.2 s |     494 strokes/s
+epoch 100/100 | loss  0.39704 | psnr fg 24.00 alpha 23.90 mean 23.95  | ssim 0.910/0.913 | lr 2.0e-07 |  100.0 s |     500 strokes/s
+== done: best psnr_mean 23.95 dB, 8.6 min this session, 197.5 min of training in total
