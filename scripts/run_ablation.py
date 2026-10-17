@@ -10,8 +10,9 @@ default), ``ot=0.1`` adds the Sinkhorn term with weight 0.1 (the original's ``--
 weight, the regularization and the iteration count, and ``full=0@1`` paints with a 1 x 1 grid instead of ``--grid`` (the stroke
 budget ``--strokes`` is split over the blocks of that grid). Fields of ``PainterConfig`` can be set after commas, for example
 ``flat=0,init=uniform`` (stroke centres drawn uniformly instead of from the error map) or ``long=0,init_chord=0.15,init_size_range=0.05:0.15``
-(how new strokes start, Week 6). Several configs on the same images and
-seeds make a paired comparison.
+(how new strokes start, Week 6), ``strokes=1000`` sets the config's own stroke budget, and ``mode=progressive`` paints coarse to fine, ``1 x 1`` up to ``GRID x GRID`` (Week 7; the
+default ``mode=fixed`` is the single grid). Several configs on the same images and seeds make a paired comparison. Each row also
+records the optimizer steps and the peak working memory of the painting (``core.device.PeakMemory``).
 
 The script is resumable: with ``--dir`` pointing at an existing experiment folder it skips the runs already in
 ``results.csv`` and appends the rest, so a long ablation can be split into chunks (``--max-minutes``). A new folder is
@@ -36,12 +37,14 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from neural_painter.core.device import device_summary, get_device, set_deterministic  # noqa: E402
+from neural_painter.core.device import PeakMemory, device_summary, disable_power_throttling, get_device, set_deterministic  # noqa: E402
+from neural_painter.core.grid import GRID_MODES, grid_levels, strokes_per_block  # noqa: E402
 from neural_painter.core.image_io import load_image, save_image  # noqa: E402
 from neural_painter.core.stroke_models import canonical_brush_name, get_brush  # noqa: E402
 from neural_painter.models.neural_renderer import load_original_checkpoint, load_renderer, original_checkpoint_path  # noqa: E402
 from neural_painter.pipeline import metrics  # noqa: E402
-from neural_painter.pipeline.painter_engine import PainterConfig, config_dict, paint_fixed_grid, save_strokes_npz  # noqa: E402
+from neural_painter.pipeline.painter_engine import PainterConfig, config_dict, save_strokes_npz  # noqa: E402
+from neural_painter.pipeline.progressive_painter import paint_image  # noqa: E402
 from neural_painter.pipeline.train_renderer import (  # noqa: E402
     EXPERIMENT_ROOT,
     commit_info,
@@ -53,7 +56,7 @@ EVAL_SET = ROOT / "data" / "eval_set"
 THRESHOLDS = (22.0, 24.0)  # neural-canvas PSNR (dB) whose first step is recorded
 FIELDS = [
     "image", "config", "seed", "grid", "strokes", "beta_ot", "ot_epsilon", "ot_iters", "optimize_s", "render_s", "psnr", "ssim", "lpips",
-    "neural_psnr", "steps_to_22db", "steps_to_24db", "device", "renderer",
+    "neural_psnr", "steps_to_22db", "steps_to_24db", "device", "renderer", "mode", "steps", "peak_memory_gb",
 ]
 
 
@@ -66,9 +69,16 @@ def _range(value: str) -> tuple[float, float]:
     return lo, hi
 
 
-OVERRIDES = {  # PainterConfig fields that a config can set by name, and how to read their value
+def _mode(value: str) -> str:
+    if value not in GRID_MODES:
+        raise argparse.ArgumentTypeError(f"mode must be one of {GRID_MODES}, got {value!r}")
+    return value
+
+
+OVERRIDES = {  # fields that a config can set by name, and how to read their value: PainterConfig fields, and the grid mode
     "init": str, "resize": str, "lr": float, "optimizer": str, "centered": _flag, "morphology": _flag, "ot_channel": str, "ot_lse": str,
     "init_chord": float, "init_size_range": _range, "init_alpha_range": _range,  # ranges are written LO:HI
+    "lr_schedule": str, "allocation": str, "iters_per_stroke": int, "precision": str, "mode": _mode, "strokes": int,
 }
 
 
@@ -134,6 +144,20 @@ def check_resume(out: Path, brush: str) -> None:
                          "or pin the old ranges with init_* overrides in a new folder")
 
 
+def planned_strokes(mode: str, grid: int, strokes: int, allocation: str) -> int:
+    """How many strokes a config paints: the equal split leaves out the remainder (``strokes // sum(m^2)`` per block)."""
+    grids = grid_levels(mode, grid)
+    return strokes if allocation == "error" else strokes_per_block(strokes, grids) * sum(m * m for m in grids)
+
+
+def csv_fields(path: Path) -> list[str]:
+    """The columns to write: those of an existing ``results.csv`` (a folder from before a column was added keeps its layout)."""
+    if path.is_file():
+        with open(path, newline="", encoding="utf-8") as fh:
+            return next(csv.reader(fh))
+    return FIELDS
+
+
 def read_done(path: Path) -> set[tuple[str, str, int]]:
     if not path.is_file():
         return set()
@@ -143,7 +167,8 @@ def read_done(path: Path) -> set[tuple[str, str, int]]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--name", default="ablation", help="experiment folder suffix (a new folder <date>_ablation_<name> is made)")
+    ap.add_argument("--name", default="ablation", help="experiment folder suffix (a new folder <date>_<kind>_<name> is made)")
+    ap.add_argument("--kind", default="ablation", help="experiment folder kind (benchmark.py uses 'benchmark')")
     ap.add_argument("--dir", type=Path, default=None, help="resume this existing experiment folder instead of making a new one")
     ap.add_argument("--configs", nargs="+", type=parse_config, default=[parse_config("pixel=0"), parse_config("ot=0.1")])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
@@ -161,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--low-priority", action="store_true", help="run at below-normal priority to keep the machine responsive")
     ap.add_argument("--deterministic", action="store_true", help="fix cuDNN's algorithm choice so that a seed reproduces its painting exactly on cuda")
     args = ap.parse_args(argv)
+    disable_power_throttling()
     if args.low_priority:
         lower_process_priority()
     set_deterministic(args.deterministic)
@@ -168,14 +194,15 @@ def main(argv: list[str] | None = None) -> int:
     brush = canonical_brush_name(args.brush)
     device = get_device(args.device)
     renderer, renderer_name = load_renderer_for(args.renderer, brush, device)
-    plans: dict[str, tuple[dict, int, int]] = {}  # config name -> (painter settings, grid, strokes per block)
+    plans: dict[str, tuple[dict, int, str, int, int]] = {}  # config name -> (painter settings, grid, mode, stroke budget, strokes painted)
     for name, cfg in args.configs:
         settings = dict(cfg)
-        grid = settings.pop("grid", args.grid)
-        if args.strokes // grid**2 < 1:
-            raise SystemExit(f"{args.strokes} strokes are too few for a {grid}x{grid} grid")
-        plans[name] = (settings, grid, args.strokes // grid**2)
-    per_block = args.strokes // (args.grid**2)
+        grid, mode, budget = settings.pop("grid", args.grid), settings.pop("mode", "fixed"), settings.pop("strokes", args.strokes)
+        total = planned_strokes(mode, grid, budget, settings.get("allocation", "equal"))
+        if total < 1:
+            raise SystemExit(f"{budget} strokes are too few for an equal split over the grids {grid_levels(mode, grid)}")
+        plans[name] = (settings, grid, mode, budget, total)
+    per_block = args.strokes // (args.grid**2)  # of a fixed grid at --grid, for the record of the defaults
     images = eval_images(args.images)[:: max(1, args.every)]
     lpips_metric = metrics.LPIPSMetric(device) if args.lpips else None
 
@@ -185,19 +212,18 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"{out} does not exist; leave out --dir to start a new experiment")
         check_resume(out, brush)
     else:
-        out = new_experiment_dir(EXPERIMENT_ROOT, args.name, kind="ablation")
+        out = new_experiment_dir(EXPERIMENT_ROOT, args.name, kind=args.kind)
     results_path = out / "results.csv"
     if not (out / "config.yaml").exists():
         info = {"created": datetime.now().isoformat(timespec="seconds"), **commit_info(), **device_summary(device), "brush": brush,
                 "renderer": renderer_name, "grid": args.grid, "strokes_per_block": per_block, "total_strokes": per_block * args.grid**2,
                 "images": [p.stem for p in images], "seeds": args.seeds, "lpips": bool(args.lpips), "iters_per_stroke": args.iters or "original",
                 "cudnn_deterministic": bool(args.deterministic), "brush_sampler": start_ranges(brush),
-                "configs": {n: {**c, "grid": plans[n][1], "strokes_per_block": plans[n][2], "total_strokes": plans[n][2] * plans[n][1] ** 2}
-                            for n, c in args.configs},
+                "configs": {n: {**c, "grid": plans[n][1], "mode": plans[n][2], "strokes": plans[n][3], "total_strokes": plans[n][4]} for n, c in args.configs},
                 "painter_defaults": config_dict(PainterConfig(strokes_per_block=per_block))}
         (out / "config.yaml").write_text(yaml.safe_dump(info, sort_keys=False), encoding="utf-8")
 
-    done = read_done(results_path)
+    done, fields = read_done(results_path), csv_fields(results_path)
     todo = [(p, n, s) for p in images for n, _ in args.configs for s in args.seeds if (p.stem, n, s) not in done]
     print(f"{out.name}: {len(done)} runs done, {len(todo)} to do ({len(images)} images x {len(args.configs)} configs x {len(args.seeds)} seeds)", flush=True)
     started, new_runs = time.perf_counter(), 0
@@ -208,24 +234,28 @@ def main(argv: list[str] | None = None) -> int:
         if args.limit and new_runs >= args.limit:
             break
         image = load_image(path)
-        settings, grid, n_block = plans[name]
-        cfg = PainterConfig(strokes_per_block=n_block, iters_per_stroke=args.iters, seed=seed, **settings)
-        paint = paint_fixed_grid(image, renderer, cfg, grid=grid, device=device)
+        settings, grid, mode, budget, _ = plans[name]
+        cfg = PainterConfig(**{"iters_per_stroke": args.iters, **settings}, seed=seed)  # a config may set its own iters_per_stroke
+        with PeakMemory(device) as memory:
+            paint = paint_image(image, renderer, cfg, mode=mode, max_divide=grid, strokes=budget, device=device)
         m = metrics.image_metrics(paint.image, image, lpips_metric)
-        hit = {t: paint.result.steps_to_psnr(t) for t in THRESHOLDS}
+        # steps to a PSNR threshold are read on a single level's neural canvas; a progressive run's last level starts high
+        hit = {t: paint.result.steps_to_psnr(t) if len(paint.levels) == 1 else None for t in THRESHOLDS}
         row = {
             "image": path.stem, "config": name, "seed": seed, "grid": grid, "strokes": len(paint.strokes), "beta_ot": cfg.beta_ot,
-            "ot_epsilon": cfg.ot_epsilon, "ot_iters": cfg.ot_iters, "optimize_s": paint.result.seconds, "render_s": paint.render_seconds,
+            "ot_epsilon": cfg.ot_epsilon, "ot_iters": cfg.ot_iters, "optimize_s": paint.optimize_seconds, "render_s": paint.render_seconds,
             "psnr": m["psnr"], "ssim": m["ssim"], "lpips": m["lpips"], "neural_psnr": float(paint.result.psnr[-1]),
             "steps_to_22db": hit[22.0], "steps_to_24db": hit[24.0], "device": str(device), "renderer": renderer_name,
+            "mode": mode, "steps": paint.steps, "peak_memory_gb": memory.gb,
         }
         run_dir = out / "runs" / path.stem / f"{name}_s{seed}"
         save_image(run_dir / "final.png", paint.image)
         save_strokes_npz(run_dir / "strokes.npz", paint.strokes, get_brush(brush), seed=seed)
-        np.savez(run_dir / "history.npz", loss=paint.result.loss, psnr=paint.result.psnr, anchor=paint.result.anchor)
+        np.savez(run_dir / "history.npz", **{k: np.concatenate([getattr(lv.result, k) for lv in paint.levels]) for k in ("loss", "psnr", "anchor")},
+                 level=np.concatenate([np.full(len(lv.result.loss), lv.m) for lv in paint.levels]))
         new = not results_path.exists()
         with open(results_path, "a", newline="", encoding="utf-8") as fh:
-            writer = csv.DictWriter(fh, fieldnames=FIELDS)
+            writer = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
             if new:
                 writer.writeheader()
             writer.writerow({k: ("" if v is None else (f"{v:.6g}" if isinstance(v, float) else v)) for k, v in row.items()})

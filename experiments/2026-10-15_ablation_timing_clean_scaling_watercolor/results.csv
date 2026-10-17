@@ -1,0 +1,13 @@
+image,config,seed,grid,strokes,beta_ot,ot_epsilon,ot_iters,optimize_s,render_s,psnr,ssim,lpips,neural_psnr,steps_to_22db,steps_to_24db,device,renderer,mode,steps,peak_memory_gb
+apple,s100,0,5,55,0,0.01,5,9.05149,0.215972,16.4948,0.499035,0.655842,16.7769,,,cuda:0,original-light,progressive,2500,0.0624013
+apple,s300,0,5,275,0,0.01,5,10.1785,0.769853,21.6932,0.563315,0.545712,23.7584,,,cuda:0,original-light,progressive,2500,0.0969186
+apple,s500,0,5,495,0,0.01,5,12.156,1.41979,22.4264,0.573171,0.517945,25.2383,,,cuda:0,original-light,progressive,2475,0.172826
+apple,s1000,0,5,990,0,0.01,5,17.9628,2.68967,22.9026,0.587043,0.46912,26.916,,,cuda:0,original-light,progressive,2430,0.343452
+iceland,s100,0,5,55,0,0.01,5,8.9441,0.213776,17.5167,0.542498,0.623992,17.9534,,,cuda:0,original-light,progressive,2500,0.0248003
+iceland,s300,0,5,275,0,0.01,5,10.6521,0.752758,21.4066,0.594071,0.5272,23.2679,,,cuda:0,original-light,progressive,2500,0.0967994
+iceland,s500,0,5,495,0,0.01,5,12.0821,1.33709,22.4249,0.60007,0.500391,25.2589,,,cuda:0,original-light,progressive,2475,0.172826
+iceland,s1000,0,5,990,0,0.01,5,17.1024,2.6761,22.4942,0.610356,0.449621,27.0157,,,cuda:0,original-light,progressive,2430,0.343452
+jay,s100,0,5,55,0,0.01,5,9.22222,0.206146,17.2234,0.565053,0.552565,17.6401,,,cuda:0,original-light,progressive,2500,0.0248003
+jay,s300,0,5,275,0,0.01,5,10.2506,0.782685,23.1719,0.661246,0.457632,25.904,,,cuda:0,original-light,progressive,2500,0.0967994
+jay,s500,0,5,495,0,0.01,5,13.1278,1.36266,23.9758,0.671819,0.432321,27.6064,,,cuda:0,original-light,progressive,2475,0.172826
+jay,s1000,0,5,990,0,0.01,5,17.6088,2.66065,24.6205,0.700039,0.380569,29.9523,,,cuda:0,original-light,progressive,2430,0.343452

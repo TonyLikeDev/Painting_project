@@ -7,12 +7,12 @@ can be painted by its own batch of strokes (the original ``img2patches`` /
 :func:`block_to_global`, which converts stroke coordinates optimized inside a
 block back to whole-image coordinates (the original ``_normalize_strokes``).
 
-The coarse-to-fine *loop* that uses these utilities is built in Week 7
-(``pipeline/progressive_painter.py``); only the schedule helper lives here.
+The coarse-to-fine *loop* that uses these utilities is ``pipeline/progressive_painter.py``
+(Week 7); the helpers that say which grids are painted and how many strokes each gets live here.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Sequence
 
 import cv2
 import numpy as np
@@ -121,54 +121,57 @@ def block_to_global(params, spec: str | BrushSpec, m: int):
     return v
 
 
-def flatten_blocks(params: np.ndarray, order: np.ndarray | None = None) -> np.ndarray:
+def flatten_blocks(params: np.ndarray, order: np.ndarray | None = None, active: np.ndarray | None = None) -> np.ndarray:
     """``(m * m, n, d)`` -> ``(n * m * m, d)`` interleaving blocks stroke by stroke.
 
     Stroke ``j`` of every block is emitted before stroke ``j + 1`` of any block, so a
     time-lapse fills the whole image evenly. ``order`` optionally permutes the blocks
     (the original shuffles them with an unseeded ``random.shuffle``; pass a permutation
-    from a seeded generator instead).
+    from a seeded generator instead). ``active`` ``(m * m, n)`` drops the slots that hold no
+    stroke (blocks given fewer strokes than others), keeping the same interleaving.
     """
     v = np.asarray(params, dtype=np.float32)
+    keep = None if active is None else np.asarray(active, dtype=bool)
     if order is not None:
         v = v[np.asarray(order)]
-    return v.transpose(1, 0, 2).reshape(-1, v.shape[-1])
+        keep = None if keep is None else keep[np.asarray(order)]
+    v = v.transpose(1, 0, 2)  # (n, blocks, d)
+    return v.reshape(-1, v.shape[-1]) if keep is None else v[keep.T]
 
 
 # ----- schedule ---------------------------------------------------------------------------
-def strokes_per_block(max_strokes: int, max_divide: int) -> int:
-    """Original ``stroke_parser``: the stroke budget is shared equally among all blocks of all levels."""
-    total_blocks = sum(i * i for i in range(1, max_divide + 1))
-    return int(max_strokes / total_blocks)
+GRID_MODES = ("progressive", "fixed", "full")
 
 
-@dataclass(frozen=True)
-class GridLevel:
-    m: int
-    strokes_per_block: int
-    patch_size: int
-
-    @property
-    def blocks(self) -> int:
-        return self.m * self.m
-
-    @property
-    def strokes(self) -> int:
-        return self.blocks * self.strokes_per_block
-
-    @property
-    def image_size(self) -> int:
-        return self.m * self.patch_size
-
-
-def progressive_schedule(max_strokes: int, max_divide: int, patch_size: int) -> list[GridLevel]:
-    """Levels ``1x1, 2x2, ..., MxM`` with the original's equal per-block budget."""
+def grid_levels(mode: str, max_divide: int) -> list[int]:
+    """Grid sizes painted in turn: ``progressive`` is ``1, 2, ..., M`` (``demo_prog.py``), ``fixed`` is ``[M]`` (``demo.py``),
+    ``full`` is ``[1]`` (one block, ``demo.py --m_grid 1``)."""
     if max_divide < 1:
         raise ValueError("max_divide must be >= 1")
-    spb = strokes_per_block(max_strokes, max_divide)
-    if spb < 1:
-        raise ValueError(f"{max_strokes} strokes are too few for max_divide = {max_divide} (need at least {sum(i * i for i in range(1, max_divide + 1))})")
-    return [GridLevel(m, spb, patch_size) for m in range(1, max_divide + 1)]
+    if mode == "progressive":
+        return list(range(1, max_divide + 1))
+    if mode == "fixed":
+        return [max_divide]
+    if mode == "full":
+        return [1]
+    raise ValueError(f"mode must be one of {GRID_MODES}, got {mode!r}")
+
+
+def strokes_per_block(max_strokes: int, grids: Sequence[int]) -> int:
+    """Original ``stroke_parser``: the stroke budget is shared equally among all blocks of all levels (500 // 55 = 9 for
+    ``1..5``; the remainder is not painted)."""
+    return int(max_strokes / sum(m * m for m in grids))
+
+
+def level_budgets(max_strokes: int, grids: Sequence[int]) -> list[int]:
+    """Strokes per level in proportion to its number of blocks, as the equal split, but summing to exactly ``max_strokes``
+    (largest remainders get the leftover strokes, the finest levels first on a tie)."""
+    blocks = np.array([m * m for m in grids], dtype=np.float64)
+    share = max_strokes * blocks / blocks.sum()
+    out = np.floor(share).astype(np.int64)
+    for i in sorted(range(len(out)), key=lambda i: (out[i] - share[i], -i))[: max_strokes - int(out.sum())]:
+        out[i] += 1
+    return out.tolist()
 
 
 # ----- figures ---------------------------------------------------------------------------

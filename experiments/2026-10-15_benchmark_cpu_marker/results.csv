@@ -1,0 +1,7 @@
+image,config,seed,grid,strokes,beta_ot,ot_epsilon,ot_iters,optimize_s,render_s,psnr,ssim,lpips,neural_psnr,steps_to_22db,steps_to_24db,device,renderer,mode,steps,peak_memory_gb
+51e3d4424d53b10ff3d8992cc12c30771037dbf85254784b7d297ed7934b_640,progressive,0,5,495,0,0.01,5,130.745,1.8339,28.6442,0.90973,,32.8356,,,cpu,original-light,progressive,2475,0.257652
+51e3d4424d53b10ff3d8992cc12c30771037dbf85254784b7d297ed7934b_640,fixed,0,5,500,0,0.01,5,109.207,1.55082,21.3121,0.834774,,31.6848,173,184,cpu,original-light,fixed,500,0.427284
+57e5dd464d54ac14f1dc8460962e33791c3ad6e04e50744172297ed29f4bc4_640,progressive,0,5,495,0,0.01,5,131.324,1.60491,19.4974,0.495216,,23.1815,,,cpu,original-light,progressive,2475,0
+57e5dd464d54ac14f1dc8460962e33791c3ad6e04e50744172297ed29f4bc4_640,fixed,0,5,500,0,0.01,5,108.789,1.59418,17.4095,0.443132,,23.5706,298,,cpu,original-light,fixed,500,0.108818
+ice-cream-cone-1274894_640,progressive,0,5,495,0,0.01,5,129.925,1.71567,22.166,0.761794,,25.2685,,,cpu,original-light,progressive,2475,0.0438576
+ice-cream-cone-1274894_640,fixed,0,5,500,0,0.01,5,109.875,1.46737,19.6468,0.710537,,26.0372,210,343,cpu,original-light,fixed,500,0.00655746

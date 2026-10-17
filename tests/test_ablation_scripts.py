@@ -32,7 +32,9 @@ def test_config_parsing():
     assert run.parse_config("x=1@2,init=uniform,centered=true,lr=0.01") == ("x", {"beta_ot": 1.0, "grid": 2, "init": "uniform", "centered": True, "lr": 0.01})
     assert run.parse_config("x=0,centered=no")[1]["centered"] is False
     assert run.parse_config("bare=0,morphology=false") == ("bare", {"beta_ot": 0.0, "morphology": False})
-    for bad in ("pixel", "=0.1", "x=", "x=0@", "x=@2", "x=0,bogus=1", "x=0,init", "x=0,"):
+    assert run.parse_config("p=0@5,mode=progressive,allocation=error,lr_schedule=cosine") == (
+        "p", {"beta_ot": 0.0, "grid": 5, "mode": "progressive", "allocation": "error", "lr_schedule": "cosine"})
+    for bad in ("pixel", "=0.1", "x=", "x=0@", "x=@2", "x=0,bogus=1", "x=0,init", "x=0,", "x=0,mode=spiral"):
         with pytest.raises(argparse.ArgumentTypeError):
             run.parse_config(bad)
 
@@ -310,3 +312,61 @@ def test_runner_is_resumable_and_never_repeats_a_run(tmp_path, monkeypatch, caps
         run.main(["--images", "apple", "--configs", "wide=0@5", "--grid", "1", "--strokes", "10", "--device", "cpu", "--name", "x"])
     with pytest.raises(SystemExit, match="matches"):
         run.main(["--images", "no-such-image", "--device", "cpu", "--name", "y"])
+
+
+def test_progressive_runs_record_mode_steps_and_memory_and_old_folders_keep_their_columns(tmp_path, monkeypatch):
+    if not original_checkpoint_path("oilpaintbrush", light=True).is_file():
+        pytest.skip("the pretrained light oil renderer has not been downloaded")
+    run = load_script("run_ablation")
+    monkeypatch.setattr(run, "EXPERIMENT_ROOT", tmp_path)
+    assert run.planned_strokes("progressive", 5, 500, "equal") == 495 and run.planned_strokes("progressive", 5, 500, "error") == 500
+    assert run.planned_strokes("fixed", 5, 500, "equal") == 500 and run.planned_strokes("fixed", 1, 500, "equal") == 500
+    base = ["--images", "apple", "--seeds", "0", "--grid", "2", "--strokes", "10", "--iters", "2", "--device", "cpu"]
+    assert run.main(base + ["--configs", "prog=0,mode=progressive", "alloc=0,mode=progressive,allocation=error", "few=0,mode=progressive,strokes=5",
+                            "--name", "prog"]) == 0
+    folder = next(tmp_path.glob("*_ablation_prog"))
+    rows = {r["config"]: r for r in csv.DictReader(open(folder / "results.csv", encoding="utf-8"))}
+    assert rows["prog"]["mode"] == "progressive" and rows["prog"]["strokes"] == "10"  # 10 // (1 + 4) = 2 per block on both levels
+    assert rows["prog"]["steps"] == "8" and rows["prog"]["steps_to_22db"] == ""  # 2 strokes x 2 steps on each of 2 levels
+    assert float(rows["prog"]["peak_memory_gb"]) >= 0 and rows["alloc"]["strokes"] == "10"
+    assert rows["few"]["strokes"] == "5"  # a config's own budget: 5 // (1 + 4) = 1 per block
+    history = np.load(folder / "runs" / "apple" / "prog_s0" / "history.npz")
+    assert history["loss"].shape == (8,) and history["level"].tolist() == [1] * 4 + [2] * 4
+
+    old = tmp_path / "old"  # a folder written before the mode / steps / memory columns existed
+    old.mkdir()
+    header = run.FIELDS[: run.FIELDS.index("mode")]
+    (old / "results.csv").write_text(",".join(header) + "\n", encoding="utf-8")
+    assert run.main(base + ["--configs", "pixel=0", "--dir", str(old)]) == 0
+    lines = (old / "results.csv").read_text(encoding="utf-8").splitlines()
+    assert lines[0].split(",") == header and len(lines[1].split(",")) == len(header)
+
+
+def test_paired_folders_refuses_a_folder_of_several_configs_without_a_name(tmp_path):
+    paired = load_script("paired_folders")
+    with open(tmp_path / "results.csv", "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["image", "config", "seed", "psnr"])
+        writer.writeheader()
+        writer.writerows([{"image": "a", "config": c, "seed": 0, "psnr": p} for c, p in (("x", 20), ("y", 21))])
+    with pytest.raises(SystemExit, match="several configs"):
+        paired.side(str(tmp_path))
+    assert paired.side(f"{tmp_path}#y")[("a", 0)]["psnr"] == "21"
+
+
+def test_scaling_plot_puts_each_config_at_the_strokes_it_painted(tmp_path, capsys):
+    plot = load_script("plot_scaling")
+    rows = []
+    for config, strokes, psnr in (("s100", 55, 17.0), ("s500", 495, 20.0), ("s1000", 990, 21.0)):
+        for seed in (0, 1):
+            for image in ("a", "b"):
+                rows.append({"image": image, "config": config, "seed": str(seed), "strokes": str(strokes), "psnr": str(psnr + seed * 0.1),
+                             "ssim": "0.5", "lpips": "0.6", "optimize_s": str(strokes / 100)})
+    assert [(x, round(m, 2)) for x, m, _ in plot.curve(rows, "psnr")] == [(55.0, 17.05), (495.0, 20.05), (990.0, 21.05)]
+    folder = tmp_path / "f"
+    folder.mkdir()
+    with open(folder / "results.csv", "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    assert plot.main([f"Oil={folder}", "--out-dir", str(tmp_path), "--tag", "s"]) == 0
+    assert (tmp_path / "s.png").is_file() and "| Oil | 990 | 21.05 +- 0.07 | 0.500 | 0.600 | 9.9 |" in capsys.readouterr().out

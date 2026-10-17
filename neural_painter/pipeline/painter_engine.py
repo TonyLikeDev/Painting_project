@@ -16,7 +16,9 @@ alpha to ``[0, 1]``. A new stroke is drawn from the error map of the canvas left
 
 :func:`paint_fixed_grid` runs the engine on an ``m x m`` grid of blocks (``m = 1`` is "full image mode"), maps the strokes
 back to whole-image coordinates and renders them with the procedural rasterizer at the output size, which is what
-the final image of the original is.
+the final image of the original is. :func:`neural_painter.pipeline.progressive_painter.paint_image` (Week 7) generalizes it to
+several grid sizes in turn (the coarse-to-fine mode) and to blocks given different numbers of strokes, and gives the same strokes
+for a single grid.
 
 Differences from the original, none of which changes what is optimized: strokes, tensors and the optimizer are
 owned by one object instead of a class with module globals; the three random generators (parameter initialization, stroke
@@ -25,6 +27,7 @@ replaces ``print``.
 """
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -47,6 +50,9 @@ from .stroke_sampler import StrokeSampler
 
 OPTIMIZERS = ("rmsprop", "adam")
 INITS = ("error_map", "uniform")
+LR_SCHEDULES = ("constant", "cosine")
+ALLOCATIONS = ("equal", "error")
+PRECISIONS = ("float32", "bfloat16", "float16")
 RESIZES = {"area": cv2.INTER_AREA, "linear": cv2.INTER_LINEAR}  # how the image is shrunk to the blocks' resolution
 
 
@@ -59,6 +65,9 @@ class PainterConfig:
     lr: float = 0.002
     optimizer: str = "rmsprop"  # "rmsprop" (the original) or "adam"
     centered: bool = False  # RMSprop(centered=True) is what the progressive demo uses
+    lr_schedule: str = "constant"  # "constant" (the original) or "cosine": lr -> 0 over the steps of each new stroke, restarted at the next (Week 7)
+    allocation: str = "equal"  # strokes per block: "equal" (the original) or "error" (in proportion to each block's error; pipeline/progressive_painter.py, Week 7)
+    precision: str = "float32"  # the renderer under autocast to "bfloat16" or "float16" (Week 7; parameters and loss stay float32); "float32" also switches off an autocast the caller opened
     init: str = "error_map"  # where new strokes start: the error map (the original) or uniformly over the block (ablation only)
     # how new strokes start (Week 6, per-material tuning); None keeps the brush's YAML ``sampler`` value
     init_size_range: tuple[float, float] | None = None
@@ -76,8 +85,8 @@ class PainterConfig:
     morphology: bool = True  # 3x3 dilate foreground / erode alpha, mimicking the rasterizer's inference step
     seed: int = 0
 
-    def resolved_iters(self) -> int:
-        return self.iters_per_stroke or max(1, int(500 / self.strokes_per_block))
+    def resolved_iters(self, strokes_per_block: int | None = None) -> int:
+        return self.iters_per_stroke or max(1, int(500 / (strokes_per_block or self.strokes_per_block)))
 
 
 @dataclass
@@ -85,6 +94,7 @@ class PaintResult:
     """Output of :meth:`PainterEngine.paint` for ``B`` blocks of ``N`` strokes."""
 
     params: np.ndarray  # (B, N, d), block coordinates, all in [0, 1]
+    active: np.ndarray  # (B, N) bool: the slots that hold a stroke (all of them unless the blocks were given different counts)
     canvas: torch.Tensor  # (B, 3, S, S) final neural canvas, detached
     loss: np.ndarray  # one value per optimizer step
     psnr: np.ndarray  # PSNR (dB) of the neural canvas against the targets, per step
@@ -109,6 +119,12 @@ class PainterEngine:
             raise ValueError(f"init must be one of {INITS}, got {self.config.init!r}")
         if self.config.resize not in RESIZES:
             raise ValueError(f"resize must be one of {tuple(RESIZES)}, got {self.config.resize!r}")
+        if self.config.lr_schedule not in LR_SCHEDULES:
+            raise ValueError(f"lr_schedule must be one of {LR_SCHEDULES}, got {self.config.lr_schedule!r}")
+        if self.config.allocation not in ALLOCATIONS:
+            raise ValueError(f"allocation must be one of {ALLOCATIONS}, got {self.config.allocation!r}")
+        if self.config.precision not in PRECISIONS:
+            raise ValueError(f"precision must be one of {PRECISIONS}, got {self.config.precision!r}")
         self.device = get_device(device)
         self.renderer = renderer.to(self.device).eval().requires_grad_(False)  # the strokes are optimized, not the network
         self.spec: BrushSpec = renderer.spec
@@ -129,8 +145,12 @@ class PainterEngine:
             x_color.clamp_(0.0, 1.0)
             x_alpha.clamp_(0.0, 1.0)
 
-    def render(self, base: torch.Tensor, x_shape: torch.Tensor, x_color: torch.Tensor, x_alpha: torch.Tensor, anchor: int) -> torch.Tensor:
-        """Canvas after compositing strokes ``0..anchor`` of every block onto ``base``; differentiable."""
+    def render(
+        self, base: torch.Tensor, x_shape: torch.Tensor, x_color: torch.Tensor, x_alpha: torch.Tensor, anchor: int, mask: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        """Canvas after compositing strokes ``0..anchor`` of every block onto ``base``; differentiable.
+
+        ``mask`` ``(B, N)`` multiplies the opacity of each slot: 0 makes a slot transparent (no paint, no gradient)."""
         b, _, s, _ = base.shape
         x = torch.cat([x_shape, x_color, x_alpha], dim=-1)[:, : anchor + 1]
         fg, alpha = self.renderer(x.reshape(b * (anchor + 1), -1))
@@ -138,6 +158,8 @@ class PainterEngine:
             fg, alpha = dilation2d(fg, 1), erosion2d(alpha, 1)
         fg = fg.reshape(b, anchor + 1, 3, s, s)
         alpha = alpha.reshape(b, anchor + 1, 3, s, s)
+        if mask is not None:
+            alpha = alpha * mask[:, : anchor + 1, None, None, None]
         return composite_sequence(base, fg, alpha)
 
     # ----- the loop -----------------------------------------------------------------------
@@ -146,13 +168,19 @@ class PainterEngine:
         targets: torch.Tensor,
         canvas: torch.Tensor | None = None,
         canvas_color: str | None = None,
-        callback: Callable[[int, int, float, float], None] | None = None,
+        callback: Callable[[int, int, float, float, torch.Tensor], None] | None = None,
         probe: Callable[[int, int, torch.Tensor, torch.Tensor, list[torch.Tensor]], None] | None = None,
+        strokes: int | np.ndarray | None = None,
     ) -> PaintResult:
         """Place ``strokes_per_block`` strokes on each of the ``B`` target blocks ``(B, 3, S, S)``.
 
+        ``strokes`` overrides the number of strokes per block: an ``int`` for every block, or a ``(B,)`` array of counts. Blocks
+        with different counts are still optimized as one batch of ``max(strokes)`` slots; the slots a block does not use are kept
+        transparent (their opacity is multiplied by 0), so they neither paint nor get a gradient, and ``PaintResult.active``
+        marks the slots that hold strokes. The number of steps per stroke follows from the largest count.
         ``canvas`` is the starting canvas (default: a blank one in ``canvas_color``, the brush's default when ``None``).
-        ``callback(anchor, step, loss, psnr)`` is called after every anchor, once the strokes of that anchor are optimized.
+        ``callback(anchor, step, loss, psnr, canvas)`` is called after every anchor, once the strokes of that anchor are optimized;
+        ``canvas`` is the detached ``(B, 3, S, S)`` neural canvas at that point (for a live preview).
         ``probe(anchor, step, canvas, targets, params)`` is called at every step, after the canvas is rendered and before the
         loss is back-propagated; ``canvas`` is differentiable and ``params`` are the leaf tensors, so a probe can take
         gradients of any loss with ``torch.autograd.grad(..., retain_graph=True)`` (it must not change them). It is a
@@ -164,7 +192,13 @@ class PainterEngine:
         if s != self.renderer.out_size:
             raise ValueError(f"targets are {s} px but the renderer draws {self.renderer.out_size} px blocks")
         base = canvas.to(dev) if canvas is not None else blank_canvas(b, s, canvas_color or spec.default_canvas_color, dev)
-        n, iters = cfg.strokes_per_block, cfg.resolved_iters()
+        counts = np.broadcast_to(np.asarray(cfg.strokes_per_block if strokes is None else strokes, dtype=np.int64), (b,))
+        if counts.min() < 0 or counts.max() < 1:
+            raise ValueError(f"stroke counts must be >= 0 with at least one stroke, got {counts.tolist()}")
+        n = int(counts.max())
+        iters = cfg.resolved_iters(n)
+        active = np.arange(n)[None, :] < counts[:, None]  # (B, n)
+        mask = None if active.all() else torch.as_tensor(active, dtype=torch.float32, device=dev)
 
         def leaf(dim: int) -> torch.Tensor:  # uniform start, as the original; real strokes overwrite it anchor by anchor
             return torch.tensor(self.rng.random((b, n, dim), dtype=np.float32), device=dev, requires_grad=True)
@@ -188,12 +222,17 @@ class PainterEngine:
                 x_shape[:, anchor] = new[:, : spec.shape_dim]
                 x_color[:, anchor] = new[:, spec.shape_dim : spec.shape_dim + spec.color_dim]
                 x_alpha[:, anchor] = new[:, spec.shape_dim + spec.color_dim :]
-            for _ in range(iters):
+            for i in range(iters):
+                if cfg.lr_schedule == "cosine":  # a warm restart at every new stroke (SGDR): large moves first, then settle
+                    for group in opt.param_groups:
+                        group["lr"] = cfg.lr * 0.5 * (1.0 + math.cos(math.pi * i / iters))
                 opt.zero_grad()
                 self._clamp(x_shape, x_color, x_alpha)
-                out = self.render(base, x_shape, x_color, x_alpha, anchor)
+                with torch.autocast(dev.type, dtype=getattr(torch, cfg.precision), enabled=cfg.precision != "float32"):
+                    out = self.render(base, x_shape, x_color, x_alpha, anchor, mask)
                 if probe is not None:
                     probe(anchor, len(losses), out, targets, params)
+                out = out.float()  # the loss and the history in float32 whatever the renderer ran in
                 loss = cfg.beta_l1 * self.pixel_loss(out, targets)
                 if self.sinkhorn is not None:
                     loss = loss + cfg.beta_ot * self.sinkhorn(out, targets)
@@ -204,14 +243,14 @@ class PainterEngine:
                 psnrs.append(psnr(out.detach(), targets))
             current = out.detach()
             if callback is not None:
-                callback(anchor, len(losses), float(losses[-1]), float(psnrs[-1]))
+                callback(anchor, len(losses), float(losses[-1]), float(psnrs[-1]), current)
         synchronize(dev)
         elapsed = time.perf_counter() - started
         with torch.no_grad():
             self._clamp(x_shape, x_color, x_alpha)
             final = torch.cat([x_shape, x_color, x_alpha], dim=-1).cpu().numpy()
         return PaintResult(
-            params=final, canvas=current, loss=torch.stack(losses).cpu().numpy(), psnr=torch.stack(psnrs).cpu().numpy(),
+            params=final, active=active, canvas=current, loss=torch.stack(losses).cpu().numpy(), psnr=torch.stack(psnrs).cpu().numpy(),
             anchor=np.repeat(np.arange(n), iters), seconds=elapsed, config=cfg,
         )
 

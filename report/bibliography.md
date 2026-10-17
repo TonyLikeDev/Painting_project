@@ -166,6 +166,17 @@ Used in: Experiments.
 
 ---
 
+## 6. Optimization
+
+### [Loshchilov and Hutter 2017] (SGDR)
+Loshchilov, I., Hutter, F. (2017). SGDR: Stochastic gradient descent with warm restarts. *International Conference on Learning Representations (ICLR)*.
+
+Annotation: Proposes annealing the learning rate along half a cosine within each period and restarting it at the start of the next, so that the optimizer alternates between large exploratory steps and fine convergence. The painter's optional learning-rate schedule (Week 7, `lr_schedule = "cosine"`) restarts the cosine at every new stroke, the natural period of the stroke-by-stroke loop. Cited where the option is defined and measured.
+
+Used in: Method, Experiments.
+
+---
+
 ## Summary
 
 | Group | Entries |
@@ -175,6 +186,7 @@ Used in: Experiments.
 | Differentiable rendering and neural renderers | 5 |
 | Optimal transport | 2 |
 | Style transfer and perceptual metrics | 3 |
-| **Total** | **20** |
+| Optimization | 1 |
+| **Total** | **21** |
 
-Required entries: 15. Added: Hertzmann 2003, Xie et al. 2013, Zheng et al. 2019, Schaldenbrand and Oh 2021, Kotovenko et al. 2021.
+Required entries: 15. Added: Hertzmann 2003, Xie et al. 2013, Zheng et al. 2019, Schaldenbrand and Oh 2021, Kotovenko et al. 2021, Loshchilov and Hutter 2017 (Week 7).

@@ -1,0 +1,4 @@
+image,config,seed,grid,strokes,beta_ot,ot_epsilon,ot_iters,optimize_s,render_s,psnr,ssim,lpips,neural_psnr,steps_to_22db,steps_to_24db,device,renderer,mode,steps,peak_memory_gb
+apple,prog500,0,5,495,0,0.01,5,45.5232,1.38622,23.7286,0.562811,0.518498,24.9559,,,cuda:0,original-full,progressive,2475,1.6296
+apple,prog1000,0,5,990,0,0.01,5,118.83,2.77403,24.4209,0.592059,0.483426,26.3481,,,cuda:0,original-full,progressive,2430,3.07586
+apple,fixed500,0,5,500,0,0.01,5,109.034,1.39598,22.0586,0.518827,0.542469,25.409,234,365,cuda:0,original-full,fixed,500,3.40969

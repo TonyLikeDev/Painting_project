@@ -68,8 +68,15 @@ venv/                      local virtual environment (git-ignored)
   that starts no new chunk after 20 minutes and is simply started again. Do not run the tests or other heavy work
   while a timed experiment runs: timings are the one thing they spoil.
 - CUDA runs are not bit-reproducible by default (cuDNN picks algorithms by call); pass `--deterministic` to the
-  experiment scripts for exact repeats (every Week 6 run did, and repeated runs matched to every digit). The desktop's
-  speed also varies by a factor of two over a day.
+  experiment scripts for exact repeats (every Week 6 run did, and repeated runs matched to every digit).
+- **Windows power throttling (found in Week 7).** Windows 11 moves a busy background process (anything started from the
+  assistant's shell) to the efficiency cores at a low clock: CPU painting steps became 3 to 4 times slower, GPU paintings up
+  to 1.75 times (the GPU loop is CPU-bound), the 512 px rasterization 2 times. This was the "factor of two over a day" of
+  Weeks 5 and 6. Every painting / timing / training script now calls `core.device.disable_power_throttling()` first; a new
+  script must do the same. `scripts/profile_step.py` reproduces the effect (`set_power_throttling(True)`).
+- Clean timings on the desktop (Week 7, opted out, alone): light renderers, 500 strokes, `cuda`: fixed grid 5.7 s, progressive
+  12 s, rasterization 0.9 to 1.4 s; `cpu` (10 threads): fixed grid 108 s, progressive 130 s. Timings of runs made two at a time
+  are inflated (progressive about 20 s); only ratios within one experiment mean much.
 - Renderer training is limited by the CPU rasterizer, so its speed depends on the brush (light renderers, 50k strokes per
   epoch): tape about 6,000 strokes/s (100 epochs in 14 min), oil 1,600 (51 min), watercolour 630 (2.2 h), marker 420 (3.3 h).
 - Week 6 ran up to three PyTorch processes at once (two trainings and one painting job) only after other programs were
@@ -78,6 +85,9 @@ venv/                      local virtual environment (git-ignored)
   watercolour start opacity [0.5, 0.7], marker start length (`chord`) 0.4. Runs made before (all of Week 5) used the
   reference starts; `init_size_range=0.1:0.25` (and `init_chord=0`, `init_alpha_range=0.98:1.0`) reproduce them, and
   `run_ablation.py` now records the start ranges in each folder and refuses to resume a folder painted under other ones.
+- Week 7 pipeline defaults live in `scripts/run_paint.py` (progressive mode, `lr_schedule=cosine`, `lr=0.004`, 500 strokes);
+  `PainterConfig` keeps the reference's defaults (constant 0.002, equal allocation, float32) so older experiments stay
+  reproducible. In `run_ablation.py` configs write them out: `prog=0,mode=progressive,lr_schedule=cosine,lr=0.004`.
 
 ## Conventions that must not drift
 
@@ -135,12 +145,19 @@ venv/Scripts/python.exe scripts/plot_ablation.py experiments/<folder> --baseline
 venv/Scripts/python.exe scripts/plot_sweep.py experiments/<folder> --baseline pixel --x beta_ot    # paired difference against the swept value (also --x ot_epsilon)
 venv/Scripts/python.exe scripts/loss_gradients.py --name gradient_ratio                             # size of the Sinkhorn gradient next to the pixel loss's, through the engine's probe hook
 venv/Scripts/python.exe scripts/compare_with_original.py --name oil_fixed_grid                      # the original demo.py against ours, same images, same scoring
+venv/Scripts/python.exe scripts/compare_with_original.py --name oil_progressive --mode progressive  # the original demo_prog.py against ours (Week 7)
 venv/Scripts/python.exe scripts/score_lpips.py experiments/<folder>                                 # fill the lpips column afterwards (needs the cached AlexNet weights)
 venv/Scripts/python.exe scripts/device_check.py            # install / tests / speed / training smoke check; run it on the MacBook
 venv/Scripts/python.exe scripts/marker_chord.py            # which renderers draw a marker stroke of a given length (Week 6 diagnostic)
 venv/Scripts/python.exe scripts/compare_brushes.py "Oil=experiments/<a>" "Tape=experiments/<b>#config" --name brush_comparison   # one table + image grid over several folders
 venv/Scripts/python.exe scripts/paired_folders.py --base experiments/<a>#cfg --other experiments/<b>#cfg   # paired per-image statistics across two folders (e.g. two renderers)
 venv/Scripts/python.exe scripts/plot_marker_chord.py experiments/<diagnostic> experiments/<sweep>      # marker start-length figure
+venv/Scripts/python.exe scripts/run_paint.py photo.jpg --brush oil --strokes 500 --grid progressive  # one command, photo to painting, live progress line; output/ (git-ignored)
+venv/Scripts/python.exe scripts/benchmark.py --profile cuda                # time + peak memory of the same paintings per device (RQ4); run with --profile mps / cpu on the MacBook
+venv/Scripts/python.exe scripts/run_ablation.py --name b --configs fixed=0 prog=0,mode=progressive alloc=0,mode=progressive,allocation=error   # Week 7 modes and options (also strokes=, precision=, iters_per_stroke=)
+venv/Scripts/python.exe scripts/plot_scaling.py "Oil=experiments/<folder>" ... [--time-from "Oil=experiments/<clean timing folder>"]   # quality and time against strokes
+venv/Scripts/python.exe scripts/profile_step.py            # where a painting step's time goes; mixed precision; CPU steps with and without throttling (run alone)
+venv/Scripts/python.exe scripts/check_end_to_end.py        # run_paint on the reference's test photos and generated edge cases (formats, aspect ratios, refusals)
 venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available())"
 cd stylized-neural-painting && ../venv/Scripts/python.exe demo_prog.py --img_path ./test_images/apple.jpg \
   --canvas_color white --max_m_strokes 500 --max_divide 5 --renderer oilpaintbrush \

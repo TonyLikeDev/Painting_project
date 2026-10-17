@@ -90,14 +90,25 @@ def test_flatten_blocks_interleaves_strokes():
     assert grid.flatten_blocks(v, order=[1, 0]).flatten().tolist() == [3, 0, 4, 1, 5, 2]
 
 
-def test_progressive_schedule():
-    assert grid.strokes_per_block(500, 5) == 9  # 500 // (1 + 4 + 9 + 16 + 25)
-    levels = grid.progressive_schedule(500, 5, 32)
-    assert [lv.m for lv in levels] == [1, 2, 3, 4, 5]
-    assert sum(lv.strokes for lv in levels) == 9 * 55
-    assert levels[-1].image_size == 160 and levels[-1].blocks == 25
+def test_flatten_blocks_drops_empty_slots():
+    v = np.arange(2 * 3 * 1, dtype=np.float32).reshape(2, 3, 1)
+    active = np.array([[True, True, True], [True, False, False]])  # block 1 holds one stroke
+    assert grid.flatten_blocks(v, active=active).flatten().tolist() == [0, 3, 1, 2]
+    assert grid.flatten_blocks(v, order=[1, 0], active=active).flatten().tolist() == [3, 0, 1, 2]
+
+
+def test_grid_levels_and_budgets():
+    assert grid.grid_levels("progressive", 5) == [1, 2, 3, 4, 5]
+    assert grid.grid_levels("fixed", 5) == [5] and grid.grid_levels("full", 5) == [1]
     with pytest.raises(ValueError):
-        grid.progressive_schedule(10, 5, 32)
+        grid.grid_levels("spiral", 5)
+    assert grid.strokes_per_block(500, [1, 2, 3, 4, 5]) == 9  # 500 // (1 + 4 + 9 + 16 + 25), the original's stroke_parser
+    assert grid.strokes_per_block(500, [5]) == 20
+    for total in (100, 300, 500, 1000):
+        budgets = grid.level_budgets(total, [1, 2, 3, 4, 5])
+        assert sum(budgets) == total  # exact, unlike the equal split (495 of 500)
+        assert all(abs(n - total * m * m / 55) < 1 for n, m in zip(budgets, range(1, 6)))
+    assert grid.level_budgets(500, [1, 2, 3, 4, 5]) == [9, 36, 82, 146, 227]
 
 
 def test_draw_grid_lines(synthetic_image):

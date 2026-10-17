@@ -58,6 +58,9 @@ def load_image(path: str | Path, *, max_pixels: int = MAX_PIXELS) -> np.ndarray:
             im = ImageOps.exif_transpose(im)
             if im.width * im.height > max_pixels:
                 raise ImageTooLargeError(f"{path.name} has {im.width * im.height:,} pixels, more than the limit of {max_pixels:,}")
+            if im.mode.startswith("I;16") or im.mode == "I":  # 16-bit grey (PNG, TIFF): convert("RGB") would clip it at 255 of 65535
+                grey = np.clip(np.asarray(im, dtype=np.float32) / 65535.0, 0.0, 1.0)
+                return np.ascontiguousarray(np.repeat(grey[..., None], 3, axis=-1))
             arr = np.asarray(im.convert("RGB"))
     except UnidentifiedImageError as exc:
         raise UnsupportedImageError(f"cannot decode {path}") from exc

@@ -138,3 +138,49 @@ def test_fidelity_script_scores_a_checkpoint_end_to_end(tmp_path, monkeypatch, c
     assert (out / "results.md").read_text(encoding="utf-8").startswith("# Renderer fidelity") and (out / "config.yaml").is_file()
     assert "untrained" in capsys.readouterr().out
     assert fidelity.main(["--device", "cpu", "--no-original", "--name", "none"]) == 1  # nothing to score
+
+
+def test_run_paint_writes_a_painting_in_the_photo_aspect_ratio(tmp_path, capsys):
+    from neural_painter.models.neural_renderer import original_checkpoint_path
+
+    if not original_checkpoint_path("oilpaintbrush", light=True).is_file():
+        pytest.skip("the pretrained light oil renderer has not been downloaded")
+    import numpy as np
+
+    from neural_painter.core.image_io import load_image, save_image
+
+    photo = tmp_path / "wide.png"
+    save_image(photo, np.random.default_rng(0).random((60, 120, 3)).astype(np.float32))  # 2:1
+    run_paint = load_script("run_paint")
+    out = tmp_path / "out"
+    assert run_paint.main([str(photo), "--strokes", "14", "--max-divide", "3", "--size", "96", "--device", "cpu", "--out", str(out), "--quiet"]) == 0
+    assert load_image(out / "final.png").shape == (48, 96, 3)  # stretched back to the photo's 2:1
+    assert load_image(out / "input.png").shape == (96, 96, 3)
+    rows = list(csv.DictReader(open(out / "results.csv", encoding="utf-8")))
+    assert rows[0]["strokes"] == "14" and rows[0]["grid"] == "progressive" and float(rows[0]["peak_memory_gb"]) >= 0
+    assert "levels" in (out / "config.yaml").read_text(encoding="utf-8") and "14 strokes" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="not empty"):
+        run_paint.main([str(photo), "--out", str(out)])
+
+
+def test_benchmark_builds_one_runner_call_per_brush():
+    benchmark = load_script("benchmark")
+    args = benchmark.main.__globals__["argparse"].Namespace(
+        profile="mps", modes=["progressive", "fixed"], max_divide=5, quick=False, every=6, seeds=[0, 1], renderer="original-light",
+        strokes=500, max_minutes=0.0)
+    line = benchmark.ablation_args(args, "marker")
+    assert line[:4] == ["--kind", "benchmark", "--name", "mps_marker"] and line[line.index("--device") + 1] == "mps"
+    assert line[line.index("--configs") + 1 : line.index("--configs") + 3] == [
+        "progressive=0@5,mode=progressive,lr_schedule=cosine,lr=0.004", "fixed=0@5,mode=fixed"]
+    args.quick = True
+    quick = benchmark.ablation_args(args, "oil")
+    assert quick[3] == "cpu_oil_quick".replace("cpu", "mps") and quick[quick.index("--seeds") + 1 : quick.index("--configs")] == ["0"]
+
+
+def test_closed_form_composite_equals_the_loop():
+    from neural_painter.core.differentiable_canvas import composite_sequence
+
+    profile = load_script("profile_step")
+    g = torch.Generator().manual_seed(0)
+    canvas, fg, alpha = torch.rand(2, 3, 8, 8, generator=g), torch.rand(2, 5, 3, 8, 8, generator=g), torch.rand(2, 5, 3, 8, 8, generator=g)
+    torch.testing.assert_close(profile.closed_form(canvas, fg, alpha), composite_sequence(canvas, fg, alpha))

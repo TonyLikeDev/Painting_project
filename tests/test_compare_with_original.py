@@ -50,3 +50,24 @@ def test_both_implementations_paint_the_same_image_and_are_scored_alike(tmp_path
         compare.main(["--grid", "5", "--strokes", "10", "--name", "x", "--device", "cpu"])
     with pytest.raises(SystemExit, match="does not exist"):
         compare.main(args + ["--dir", str(tmp_path / "missing")])
+
+
+@pytest.mark.skipif(not (ORIGINAL / "demo_prog.py").is_file(), reason="the original 2021 checkout is not present")
+def test_progressive_mode_runs_demo_prog_seeded_and_ours_with_its_optimizer(tmp_path, monkeypatch):
+    if not original_checkpoint_path("oilpaintbrush", light=True).is_file():
+        pytest.skip("the pretrained light oil renderer has not been downloaded")
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
+    compare = load_script("compare_with_original")
+    monkeypatch.setattr(compare, "EXPERIMENT_ROOT", tmp_path)
+    command = compare.original_command(ROOT / "x.png", tmp_path, 5, 500, "progressive", 2)
+    assert command[3] == "demo_prog.py" and "--max_divide" in command and command[-2:] == ["--seed", "2"]
+    assert "disable_power_throttling()" in command[2] and "runpy.run_path('demo_prog.py'" in command[2]
+    assert "--seed" not in compare.original_command(ROOT / "x.png", tmp_path, 5, 500, "fixed", 2)  # demo.py cannot be seeded
+    assert compare.ORIGINAL_OPTIMIZER["progressive"] == {"centered": True}
+    assert compare.main(["--images", "apple", "--every", "1", "--repeats", "1", "--grid", "2", "--strokes", "10", "--device", "cpu",
+                         "--mode", "progressive", "--name", "prog"]) == 0
+    folder = next(tmp_path.glob("*_check_prog"))
+    rows = {r["config"]: r for r in csv.DictReader(open(folder / "results.csv", encoding="utf-8"))}
+    assert set(rows) == {"original", "ours", "ours_linear"} and all(r["strokes"] == "10" and r["mode"] == "progressive" for r in rows.values())
+    assert rows["original"]["renderer"] == "original demo_prog.py"
+    assert "centered: true" in (folder / "config.yaml").read_text(encoding="utf-8")

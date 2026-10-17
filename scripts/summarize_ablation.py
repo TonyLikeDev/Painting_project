@@ -22,7 +22,8 @@ from scipy import stats
 
 # metric -> (label, higher is better)
 METRICS = {"psnr": ("PSNR (dB)", True), "ssim": ("SSIM", True), "lpips": ("LPIPS", False), "neural_psnr": ("neural-canvas PSNR (dB)", True),
-           "optimize_s": ("optimize (s)", False), "steps_to_22db": ("steps to 22 dB", False), "steps_to_24db": ("steps to 24 dB", False)}
+           "optimize_s": ("optimize (s)", False), "steps_to_22db": ("steps to 22 dB", False), "steps_to_24db": ("steps to 24 dB", False),
+           "steps": ("optimizer steps", False), "peak_memory_gb": ("peak memory (GB)", False)}  # the last two since Week 7
 
 
 def read_rows(folder: Path) -> list[dict]:
@@ -31,7 +32,8 @@ def read_rows(folder: Path) -> list[dict]:
 
 
 def column(rows: list[dict], key: str) -> np.ndarray:
-    return np.array([float(r[key]) if r[key] != "" else np.nan for r in rows])
+    """``key`` of every row as floats; empty cells, and columns a folder predates, are NaN."""
+    return np.array([float(r[key]) if r.get(key, "") != "" else np.nan for r in rows])
 
 
 def per_seed_means(rows: list[dict], config: str, key: str) -> np.ndarray:
@@ -84,7 +86,7 @@ def summarize(rows: list[dict], baseline: str | None = None, labels: dict[str, s
     seeds = sorted({int(r["seed"]) for r in rows})
     lines = [f"# Ablation summary", "", f"{len(rows)} runs: {n_images} images x {len(configs)} configs x {len(seeds)} seeds {seeds}. "
              "Each cell is the mean over seeds of the per-seed image average, plus or minus the standard deviation over seeds.", ""]
-    shown = [k for k in METRICS if any(r[k] != "" for r in rows)]
+    shown = [k for k in METRICS if any(r.get(k, "") != "" for r in rows)]
     lines += ["| Config | " + " | ".join(METRICS[k][0] for k in shown) + " |", "| :--- | " + " | ".join("---:" for _ in shown) + " |"]
     csv_rows = []
     for c in configs:
@@ -96,8 +98,8 @@ def summarize(rows: list[dict], baseline: str | None = None, labels: dict[str, s
                 record[k] = float(np.median(hit)) if hit else None
                 continue
             v = per_seed_means(rows, c, k)
-            cells.append("-" if v.size == 0 else (f"{v.mean():.2f} +- {v.std(ddof=1) if v.size > 1 else 0.0:.2f}" if k != "ssim" and k != "lpips"
-                                                   else f"{v.mean():.3f} +- {v.std(ddof=1) if v.size > 1 else 0.0:.3f}"))
+            digits = 3 if k in ("ssim", "lpips", "peak_memory_gb") else 0 if k == "steps" else 2
+            cells.append("-" if v.size == 0 else f"{v.mean():.{digits}f} +- {v.std(ddof=1) if v.size > 1 else 0.0:.{digits}f}")
             record[k] = float(v.mean()) if v.size else None
         lines.append(f"| {show(c)} | " + " | ".join(cells) + " |")
         csv_rows.append(record)

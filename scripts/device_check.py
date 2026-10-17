@@ -247,7 +247,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--skip-painting", action="store_true")
     ap.add_argument("--with-lpips", action="store_true", help="also build the LPIPS metric (downloads the AlexNet weights once)")
     args = ap.parse_args(argv)
+    from neural_painter.core.device import disable_power_throttling
 
+    disable_power_throttling()
     results: dict = {"created": datetime.now().isoformat(timespec="seconds")}
     step(results, "environment", lambda: check_environment(args.device))
     step(results, "dependencies", check_dependencies)

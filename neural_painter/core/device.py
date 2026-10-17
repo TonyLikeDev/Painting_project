@@ -6,6 +6,8 @@ explicit function, so a caller can always say which backend a result came from.
 from __future__ import annotations
 
 import platform
+import sys
+import threading
 from typing import Any
 
 import torch
@@ -47,6 +49,39 @@ def set_deterministic(enabled: bool = True) -> None:
     torch.backends.cudnn.benchmark = False
 
 
+def disable_power_throttling() -> bool:
+    """Opt this process out of Windows' power throttling ("EcoQoS"); a no-op returning ``False`` on other systems.
+    See :func:`set_power_throttling`."""
+    return set_power_throttling(False)
+
+
+def set_power_throttling(enabled: bool) -> bool:
+    """Opt this process out of (``enabled=False``) or into (``True``, for measuring it) Windows' power throttling ("EcoQoS");
+    a no-op returning ``False`` on other systems.
+
+    Windows 11 throttles a busy process it does not consider in the foreground (a script started from a background shell, an
+    IDE or an agent): its threads are moved to the efficiency cores at a low clock. On the i5-13400F of the desktop this made a
+    CPU optimizer step of the light renderer 3 to 4 times slower once the first large step had run, and on ``cuda`` a
+    progressive painting took 21 s instead of 12 s and the 512 px rasterization 2.7 s instead of 1.3 s (Week 7, report
+    Section 4.4). Every script that paints or times calls :func:`disable_power_throttling` first.
+    """
+    if sys.platform != "win32":
+        return False
+    import ctypes
+    from ctypes import wintypes
+
+    class State(ctypes.Structure):  # PROCESS_POWER_THROTTLING_STATE
+        _fields_ = [("Version", wintypes.ULONG), ("ControlMask", wintypes.ULONG), ("StateMask", wintypes.ULONG)]
+
+    try:
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+        state = State(1, 0x1, 0x1 if enabled else 0x0)  # control EXECUTION_SPEED, and turn it on or off
+        return bool(kernel32.SetProcessInformation(kernel32.GetCurrentProcess(), 4, ctypes.byref(state), ctypes.sizeof(state)))  # 4: ProcessPowerThrottling
+    except (AttributeError, OSError):  # an older Windows without the call: nothing to opt out of
+        return False
+
+
 def _mps_available() -> bool:
     mps = getattr(torch.backends, "mps", None)
     return bool(mps is not None and mps.is_available())
@@ -61,6 +96,8 @@ def device_summary(device: torch.device | None = None) -> dict[str, Any]:
         "python": platform.python_version(),
         "platform": platform.platform(),
         "machine": platform.machine(),
+        "processor": platform.processor(),
+        "cpu_threads": torch.get_num_threads(),
     }
     if device.type == "cuda":
         idx = device.index or 0
@@ -85,9 +122,63 @@ def reset_peak_memory(device: torch.device) -> None:
 
 
 def peak_memory_gb(device: torch.device) -> float | None:
-    """Peak allocated memory since the last reset, in GB (``None`` when the backend cannot report it)."""
+    """CUDA: peak allocated memory since the last reset, in GB. MPS has no peak counter: this is the memory the Metal driver
+    holds *now*. ``None`` on the CPU. For the peak of a piece of code on any backend use :class:`PeakMemory`."""
     if device.type == "cuda":
         return torch.cuda.max_memory_allocated(device) / 2**30
     if device.type == "mps" and hasattr(torch.mps, "driver_allocated_memory"):
         return torch.mps.driver_allocated_memory() / 2**30
     return None
+
+
+def _memory_now(device: torch.device) -> int:
+    if device.type == "mps":
+        return int(torch.mps.current_allocated_memory())
+    import psutil
+
+    return int(psutil.Process().memory_info().rss)
+
+
+class PeakMemory:
+    """``with PeakMemory(device) as mem: ...`` then ``mem.gb``: how far memory rose above its level at the start of the block.
+
+    * ``cuda``: the allocator's exact peak of tensor memory (``torch.cuda.max_memory_allocated`` after a reset);
+    * ``mps``: the largest ``torch.mps.current_allocated_memory()`` (tensor memory) seen by a thread that samples it every
+      ``interval`` seconds, because MPS keeps no peak counter, so a peak shorter than the interval can be missed;
+    * ``cpu``: the largest resident set size of the process (``psutil``) seen by the same sampling thread, which counts every
+      allocation of the process, not only tensors.
+
+    The three are therefore the working memory of the code inside the block, not of the whole process; what was allocated
+    before it (the renderer's weights, the CUDA context) is not counted.
+    """
+
+    def __init__(self, device: torch.device, interval: float = 0.005) -> None:
+        self.device, self.interval = device, interval
+        self.gb: float | None = None
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def _sample(self) -> None:
+        while not self._stop.wait(self.interval):
+            self._peak = max(self._peak, _memory_now(self.device))
+
+    def __enter__(self) -> "PeakMemory":
+        synchronize(self.device)
+        if self.device.type == "cuda":
+            self._start = torch.cuda.memory_allocated(self.device)
+            torch.cuda.reset_peak_memory_stats(self.device)
+        else:
+            self._start = self._peak = _memory_now(self.device)
+            self._thread = threading.Thread(target=self._sample, daemon=True)
+            self._thread.start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        synchronize(self.device)
+        if self.device.type == "cuda":
+            peak = torch.cuda.max_memory_allocated(self.device)
+        else:
+            self._stop.set()
+            self._thread.join()
+            peak = max(self._peak, _memory_now(self.device))
+        self.gb = max(0, peak - self._start) / 2**30

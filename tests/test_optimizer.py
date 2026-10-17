@@ -83,7 +83,7 @@ def test_same_seed_same_strokes_and_a_different_seed_differs():
 
 def test_callback_history_and_steps_to_psnr():
     seen = []
-    result = engine().paint(two_colour_blocks(), canvas_color="black", callback=lambda a, s, loss, p: seen.append((a, s, loss, p)))
+    result = engine().paint(two_colour_blocks(), canvas_color="black", callback=lambda a, s, loss, p, c: seen.append((a, s, loss, p)))
     assert [t[0] for t in seen] == [0, 1, 2, 3, 4] and [t[1] for t in seen] == [10, 20, 30, 40, 50]
     assert all(np.isfinite(t[2]) and np.isfinite(t[3]) for t in seen)
     np.testing.assert_array_equal(result.anchor, np.repeat(np.arange(5), 10))

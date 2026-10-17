@@ -1,0 +1,21 @@
+case,expect,outcome,ok,brush,fit,input_w,input_h,output_w,output_h,strokes,psnr,ssim,optimize_s,render_s,wall_s,message
+alien.jpg,ok,ok,True,oil,stretch,494,496,509,512,495,19.175,0.503339,23.5284,1.53722,25.2174,
+apple.jpg,ok,ok,True,watercolor,crop,1021,854,512,512,495,22.4809,0.574268,12.5476,1.47284,14.0442,
+cube2.jpg,ok,ok,True,marker,pad,533,483,512,512,495,20.5566,0.798463,12.5932,1.47618,14.0925,
+diamond.jpg,ok,ok,True,tape,stretch,396,377,512,487,495,16.0729,0.594674,13.0566,0.862129,13.9422,
+diamond2.jpg,ok,ok,True,oil,crop,477,463,512,512,495,19.9893,0.664811,11.8937,1.27065,13.1928,
+fire.jpg,ok,ok,True,watercolor,pad,748,709,512,512,495,18.6718,0.635231,12.4251,1.31605,13.7645,
+iceland.jpg,ok,ok,True,marker,stretch,568,452,512,407,495,21.0751,0.580981,12.7278,1.40198,14.156,
+jay.jpg,ok,ok,True,tape,crop,729,640,512,512,495,24.3521,0.672076,12.6236,0.889405,13.5354,
+joker.jpg,ok,ok,True,oil,pad,559,563,512,512,495,18.5892,0.527815,11.772,1.2642,13.0656,
+sunflowers.jpg,ok,ok,True,watercolor,stretch,677,672,512,508,495,19.8922,0.562449,13.3864,1.34328,14.7554,
+yosemite.jpg,ok,ok,True,marker,crop,640,480,512,512,495,19.9091,0.428694,12.2771,1.37498,13.677,
+grey.png,ok,ok,True,tape,pad,400,300,512,512,495,27.0455,0.923583,12.6599,0.905301,13.5883,
+alpha.png,ok,ok,True,oil,stretch,400,300,512,384,495,28.9886,0.759648,12.5907,1.34763,13.9679,
+panorama_4x1.jpg,ok,ok,True,watercolor,crop,1600,200,512,512,495,29.4248,0.91238,12.6384,1.53053,14.1949,
+portrait_1x3.jpg,ok,ok,True,marker,pad,200,1200,512,512,495,23.2235,0.898439,12.116,1.39633,13.5367,
+thumbnail_40x30.png,ok,ok,True,tape,stretch,40,30,512,384,495,30.1021,0.838635,13.1842,0.941659,14.15,
+deep_16bit.tif,ok,ok,True,oil,crop,400,300,512,512,495,31.2077,0.796851,12.0522,1.36558,13.4475,
+not_an_image.png,refused,refused,True,watercolor,pad,,,,,,,,,,,cannot paint G:\Github\Painting_project\experiments\2026-10-15_check_end_to_end\runs\inputs\not_an_image.png: cannot decode G:\Github\Painting_project\experiments\2026-10-15_check_end_to_end\runs\inputs\not_an_image.png
+animation.gif,refused,refused,True,marker,stretch,,,,,,,,,,,"cannot paint G:\Github\Painting_project\experiments\2026-10-15_check_end_to_end\runs\inputs\animation.gif: unsupported image format '.gif' (animation.gif); use ['.bmp', '.jpeg', '.jpg', '.png', '.tif', '.tiff', '.webp']"
+too_large.png,refused,refused,True,tape,crop,6332,6332,,,,,,,,,"cannot paint G:\Github\Painting_project\experiments\2026-10-15_check_end_to_end\runs\inputs\too_large.png: too_large.png has 40,094,224 pixels, more than the limit of 40,000,000"

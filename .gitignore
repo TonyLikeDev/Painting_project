@@ -23,3 +23,6 @@ experiments/**/*.gif
 # os
 .DS_Store
 Thumbs.db
+
+# paintings made with scripts/run_paint.py (user output, not experiments)
+output/

@@ -431,6 +431,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from ..core.device import disable_power_throttling
+
+    disable_power_throttling()  # the rasterizer threads would otherwise run on the efficiency cores (Week 7)
     args = build_parser().parse_args(argv)
     if args.low_priority:
         lower_process_priority()

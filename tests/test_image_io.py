@@ -99,3 +99,15 @@ def test_preprocess_from_array_and_path(tmp_path, synthetic_image):
     assert pre2.tensor.shape == (1, 3, 48, 96) and pre2.source == str(path) and pre2.crop_box is None
     with pytest.raises(io.ImageTooLargeError):
         io.preprocess(synthetic_image, 64, max_pixels=10)
+
+
+def test_sixteen_bit_grey_keeps_its_range(tmp_path):
+    """Pillow opens 16-bit grey PNG / TIFF as mode I;16 or I, whose convert("RGB") clips at 255 of 65535 (a white image)."""
+    from PIL import Image
+
+    ramp = (np.linspace(0, 1, 256)[None, :].repeat(4, 0) * 65535).astype(np.uint16)
+    for name in ("ramp.tif", "ramp.png"):
+        Image.fromarray(ramp).save(tmp_path / name)
+        img = io.load_image(tmp_path / name)
+        assert img.shape == (4, 256, 3) and img.dtype == np.float32
+        np.testing.assert_allclose(img[0, :, 0], np.linspace(0, 1, 256), atol=1e-4)

@@ -30,6 +30,9 @@ def side(spec: str) -> dict[tuple[str, int], dict]:
     rows = [r for r in read_rows(path) if not config or r["config"] == config]
     if not rows:
         raise SystemExit(f"no runs for {spec!r}")
+    configs = sorted({r["config"] for r in rows})
+    if len(configs) > 1:  # runs of two configs share (image, seed): one would silently replace the other
+        raise SystemExit(f"{path.name} holds several configs {configs}: name one as FOLDER#CONFIG")
     return {(r["image"], int(r["seed"])): r for r in rows}
 
 

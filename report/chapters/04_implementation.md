@@ -2,7 +2,8 @@
 
 This chapter describes how the method of Chapter 2 is implemented in the `neural_painter`
 package. It grows week by week; this version covers the neural renderer (Week 4), the
-optimization of strokes against a target image (Week 5) and the four brush materials (Week 6). Unless a
+optimization of strokes against a target image (Week 5), the four brush materials (Week 6) and the automatic pipeline
+(Week 7). Unless a
 sentence says otherwise, every number in it comes from a script or test in the repository, and
 the experiment folder it was produced in is named next to it.
 
@@ -687,8 +688,8 @@ stroke budget and the fixed grid; the progressive mode of Week 7 and the other t
 differently (for the brushes, Section 4.3.5 finds that they do not), and so may a style loss for which the transport term might matter more. The weight and
 regularization sweeps used 10 and 5 of the 30 images, so their intervals are about $\pm 0.1$ and $\pm 0.2$ dB wide
 and cannot show a smaller effect. The timings are those of one desktop and moved by
-a factor of two between runs made hours apart on the same machine, so only ratios measured together mean much;
-the same loop on the MacBook is measured in Week 7.
+a factor of two between runs made hours apart on the same machine, so only ratios measured together mean much
+(Week 7 traced this to Windows' power throttling, Section 4.4.7); the same loop on the MacBook is still to be measured.
 
 ## 4.3 Brush materials
 
@@ -806,7 +807,7 @@ lengths of 0.1 and 0.4 (`report/figures/marker_start_qualitative.png`). With the
 a few specks on the black canvas. The thin black seams along the block borders in the other two columns are the canvas
 showing between blocks: a stroke's end points (or centre) are clamped to $[0.1, 0.9]$ of its block, so a stroke narrower
 than that margin cannot reach the border. On the white canvas of the oil brush the same seams are white and much less visible; the progressive mode of
-Week 7, whose blocks overlap from one level to the next, should hide them.
+Week 7, whose blocks overlap from one level to the next, hides them (Section 4.4.5).
 
 ### 4.3.3 How large a new stroke starts
 
@@ -1040,3 +1041,480 @@ three images, seed 0). The limits are those of Section 4.2.12: one stroke budget
 the tuning used three images and the checks ten, so effects below about 0.1 to 0.2 dB cannot be resolved; and every
 choice was tuned with the authors' renderers, so the defaults may not be the best ones for the retrained renderers of
 Section 4.3.6.
+
+## 4.4 The automatic pipeline
+
+Weeks 4 to 6 built the parts of the painter and measured them with the fixed grid of the 2021 `demo.py`. This section joins
+the parts into one program that turns a photograph into a painting with one command (Section 4.4.1), adds the coarse-to-fine
+mode of the reference's `demo_prog.py` (Section 4.4.2) and two options of its own (Section 4.4.3), measures which grid mode
+paints best (the second half of RQ2, Sections 4.4.4 and 4.4.5), how quality and time grow with the number of strokes (RQ3,
+Section 4.4.6), and what the program costs in time and memory on each device (RQ4, Section 4.4.7), and tests it end to end on
+photographs of every shape and format (Section 4.4.8).
+
+### 4.4.1 From photograph to painting in one command
+
+`scripts/run_paint.py` takes a photograph and writes a painting:
+
+```
+venv/Scripts/python.exe scripts/run_paint.py photo.jpg --brush oil --strokes 500 --grid progressive
+```
+
+Figure 4.13 shows what happens in between. The photograph is loaded (JPG, PNG, BMP, WebP or TIFF; EXIF rotation applied)
+and fitted to a $512 \times 512$ square by `image_io.preprocess` (Section 5.1). Three fits are offered: `stretch`, the
+reference's behaviour, distorts the photograph to a square and stretches the painting back to the photograph's aspect
+ratio when it is saved; `crop` and `pad` keep the strokes undistorted and give a square painting. The fitted image is then
+painted by `pipeline/progressive_painter.paint_image` at one or several grid sizes in turn: for each level the target and the
+canvas so far are cut into $m \times m$ blocks, every block gets its strokes, the strokes of all blocks are optimized as one
+batch by the engine of Section 4.2.1, mapped to image coordinates (2.13) and drawn by the procedural rasterizer on top of the
+painting, which becomes the starting canvas of the next level. While it runs, one line on the terminal shows the level, the
+strokes done out of the total, the loss, the PSNR of the neural canvas and the elapsed time; the same information, with the
+neural canvas itself for a live preview, reaches any other caller as a `Progress` event (the web interface of Week 8 will be
+such a caller). At the end a new folder receives the painting (`final.png`), the fitted photograph it is scored against
+(`input.png`), the strokes in the reference's `.npz` layout, every setting with the device and the commit (`config.yaml`) and
+one row of results: PSNR and SSIM, optimization and rasterization time, number of strokes and optimizer steps, and the peak
+working memory (`results.csv`). Folders are never reused.
+
+**Figure 4.13.** The end-to-end pipeline (`report/figures/pipeline_end_to_end.png`).
+
+The peak memory is measured by `core.device.PeakMemory` in the same way on every backend as far as the backends allow: on
+`cuda` it is the allocator's exact peak of tensor memory (`torch.cuda.max_memory_allocated` after a reset); `mps` keeps no
+peak counter, so a thread samples its allocated tensor memory every 5 ms; on the CPU the same thread samples the process's
+resident memory, which counts every allocation of the process and not only tensors. All three report the rise above the
+level at the start of the painting, so the renderer's weights and the CUDA context, loaded before, are not counted.
+
+### 4.4.2 Coarse-to-fine painting
+
+The reference's `demo_prog.py` paints at the grids $1 \times 1, 2 \times 2, \dots, M \times M$ in turn ($M = 5$ by default).
+Every block of every level gets the same number of strokes, $\lfloor 500 / 55 \rfloor = 9$ for 500 strokes and $M = 5$
+($55 = 1 + 4 + 9 + 16 + 25$ blocks), so 495 strokes are painted, and each stroke gets $\lfloor 500 / 9 \rfloor = 55$
+optimizer steps: about 500 steps per level and 2,475 in all, five times as many as the fixed grid's 500. The first strokes
+are therefore as large as a fifth to two fifths of the image (the start sizes of Section 4.3.3 are fractions of the block)
+and lay in the background colours; each finer level paints over the previous one in smaller strokes, starting from the
+canvas that the earlier strokes, rasterized with the real brush, produce. After every level the reference re-renders all
+strokes so far from a blank canvas; `paint_image` draws each level's strokes on top of the canvas it already has, which is
+the same sequence of compositing operations and so the same image (checked to the bit in the tests), with one pass over the
+strokes instead of one per level. Two further differences are in the data path: the target of every level is shrunk from
+the source image (the reference shrinks it from a copy already shrunk to $M S$ pixels), by area averaging unless
+`resize = "linear"` asks for the reference's bilinear filter (Section 4.2.11), and so is the canvas handed to the next
+level. The progressive demo uses the centred form of RMSprop where `demo.py` uses the plain one; `PainterConfig.centered`
+selects either, and Section 4.4.4 measures both.
+
+`paint_image` paints the reference's other two modes as single levels: `fixed` is the one level $M \times M$ and gives the
+same strokes as `paint_fixed_grid` of Section 4.2.1 (the same random draws in the same order; checked to the bit in the
+tests), and `full` is the one level $1 \times 1$. The three modes are thus one code path, which is what makes their
+comparison clean.
+
+*Agreement with the reference.* As in Section 4.2.11, `scripts/compare_with_original.py --mode progressive` runs the
+reference's `demo_prog.py` (oil brush, light renderer, white canvas, 500 strokes, $M = 5$, pixel loss) and this package on
+the five images that are every sixth of the evaluation set, three repeats each, and scores all 45 paintings with the same
+code (experiment `2026-10-15_check_oil_progressive`). Our patch of the reference added a `--seed` option to `demo_prog.py`,
+so its repeats are seeded with the repeat number; that fixes its random draws, but they are not ours. Like ours, the
+reference process is opted out of Windows' power throttling (Section 4.4.7), so that the two run under the same conditions.
+The configuration `ours_linear` is this package with the reference's settings: bilinear shrinking, the start sizes
+$[0.1, 0.25]$ and centred RMSprop.
+
+**Table 4.26.** The reference's `demo_prog.py` against this package on 5 images and three repeats: mean over the repeats of the
+image average, plus or minus the standard deviation of the three repeat means, and the paired difference to the reference
+per image ($n = 5$).
+
+| Implementation | PSNR (dB) | SSIM | LPIPS | PSNR difference to the reference, 95 % CI |
+| :--- | ---: | ---: | ---: | :--- |
+| Reference `demo_prog.py` | 20.30 $\pm$ 0.09 | 0.578 $\pm$ 0.002 | 0.553 $\pm$ 0.001 | |
+| This package, the reference's settings | 20.25 $\pm$ 0.04 | 0.577 $\pm$ 0.001 | 0.551 $\pm$ 0.004 | $-0.05$, $[-0.15, +0.05]$ |
+| This package, its defaults | 20.95 $\pm$ 0.05 | 0.584 $\pm$ 0.003 | 0.549 $\pm$ 0.002 | $+0.65$, $[+0.21, +1.08]$, 5 of 5 |
+
+With the reference's settings the two implementations are indistinguishable in all three metrics (the SSIM and LPIPS
+differences are below 0.003), so the progressive mode reproduces the reference as the fixed grid did. With the package's
+defaults (area-averaged targets, the Week 6 start sizes, plain RMSprop at a constant 0.002, the settings of Table 4.29) the
+progressive painting is better by 0.65 dB on every image, and by 0.70 dB than the package run with the reference's
+settings. That difference combines the shrinking filter (0.32 dB with the fixed grid, Table 4.14), the start sizes (0.39 dB
+with the fixed grid, Table 4.20) and the form of RMSprop (0.01 dB, Table 4.29), which this experiment does not separate.
+LPIPS sees no difference ($-0.003$, $[-0.017, +0.010]$).
+
+### 4.4.3 Two options: strokes where they are needed, and a learning-rate schedule
+
+The plan for this week names two modernizations of the loop, dynamic stroke allocation and learning-rate scheduling. Both
+are options of `PainterConfig` and are off by default until the measurements below say otherwise.
+
+*Stroke allocation* (`allocation = "error"`). The reference gives every block the same number of strokes, so a block of
+flat sky that the canvas colour already matches gets as many strokes as a block of foliage, and the equal split drops the
+remainder of the budget (5 of 500 strokes for $M = 5$; 45 of 100). With the option, each level first gets its share of the
+budget in proportion to its number of blocks, rounded so that the shares add up to exactly the budget
+(`core.grid.level_budgets`: 9, 36, 82, 146 and 227 strokes for 500 and $M = 5$), and the share is then split among the blocks
+in proportion to their mean absolute error $\frac{1}{3S^2}\sum |I - C|$ on the canvas the level starts from, by D'Hondt's
+method (strokes are handed out one at a time to the block with the largest $e_b / (n_b + 1)$), with at most twice the level's
+mean per block so that one block cannot take the whole share. Blocks with different counts are still optimized as one batch:
+each has as many slots as the largest count, and the slots a block does not use are made transparent by multiplying their
+opacity by zero, so they neither paint nor receive a gradient. The number of steps per stroke follows the largest count,
+$\lfloor 500 / n_{\max} \rfloor$, which keeps about 500 steps per level as in the reference; the price is that a block's
+strokes get fewer steps each when another block gets many.
+
+*Learning-rate schedule* (`lr_schedule = "cosine"`). The reference keeps the learning rate at 0.002 throughout. With the
+option the rate falls along half a cosine from its peak to zero over the $T$ steps that follow each new stroke and starts
+again at the next one, a warm restart at every stroke [Loshchilov and Hutter, SGDR, 2017]: the strokes move far just after a
+new one arrives and settle before the error map is read for the next. With the same peak the mean rate is halved, so the
+schedule is tried both at the reference's peak and at twice it (0.004, the same mean rate as the reference).
+
+Both options were tuned with the protocol of Section 4.3.3: three tuning images (cube2, sunflowers, ice-cream-cone) and three
+seeds first, then every setting that improved PSNR on all three images was checked on the ten held-out images and adopted if
+the 95 % interval of its PSNR gain excludes zero and neither SSIM nor LPIPS is significantly worse. The tuning also varied the
+number of steps per stroke of the progressive mode, which Section 4.4.4 shows to matter (experiments
+`2026-10-15_ablation_tuning_pipeline_oil` and `..._tuning_pipeline_iters`, oil, 126 paintings).
+
+**Table 4.27.** Tuning on three images (seeds averaged per image): PSNR difference to the progressive mode with the reference's
+settings (20.01 dB, 2,475 steps), the number of images improved, and the optimization time of runs made two at a time.
+
+| Setting | PSNR difference (dB) | Images improved | LPIPS difference | Time (s) | Peak memory (GB) |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Reference (constant rate 0.002, equal allocation, 55 steps per stroke) | | | | 21.4 | 0.18 |
+| Allocation by error | $+0.21$ | 3 of 3 | $-0.027$ | 28.8 | 0.32 |
+| Cosine schedule, peak 0.002 | $-0.11$ | 1 of 3 | $+0.001$ | 21.2 | 0.17 |
+| Cosine schedule, peak 0.004 | $+0.12$ | 3 of 3 | $-0.005$ | 20.7 | 0.17 |
+| Allocation by error and cosine, peak 0.004 | $+0.21$ | 3 of 3 | $-0.027$ | 30.2 | 0.33 |
+| 22 steps per stroke (990 steps) | $-0.08$ | 0 of 3 | $+0.009$ | 8.7 | 0.17 |
+| 11 steps per stroke (495 steps) | $-0.28$ | 0 of 3 | $+0.015$ | 4.4 | 0.17 |
+| 5 steps per stroke (225 steps) | $-0.49$ | 0 of 3 | $+0.021$ | 2.6 | 0.17 |
+| 11 steps per stroke with allocation by error | $+0.11$ | 3 of 3 | $-0.014$ | 10.9 | 0.33 |
+| Fixed grid (reference) | $-0.29$ | 0 of 3 | $+0.001$ | 14.3 | 0.38 |
+
+The cosine schedule helps only at the doubled peak; at the reference's peak, which halves the mean rate, it loses 0.11 dB.
+The number of steps per stroke trades quality for time smoothly: the reference's 55 steps per stroke are the best, 22 cost
+0.08 dB in 40 % of the time, and 11 paint as well as the fixed grid in a third of its time. Allocation by error helps in every
+combination, most of all in LPIPS, and costs about a third more time and almost twice the memory, because a block may hold up to
+twice the mean number of strokes and the batch is padded to the largest.
+
+**Table 4.28.** The candidates on the ten held-out images (`2026-10-15_ablation_confirm_pipeline_oil`, 150 paintings): paired
+difference per image to the progressive mode with the reference's settings (20.56 dB), with 95 % intervals.
+
+| Setting | PSNR (dB) | Images won | SSIM | LPIPS | Time (s) |
+| :--- | :--- | ---: | :--- | :--- | ---: |
+| Reference settings | 20.56 | | 0.576 | 0.521 | 21.1 |
+| Cosine schedule, peak 0.004 | $+0.070$ $[+0.026, +0.114]$ | 8 of 10 | $+0.005$ $[+0.002, +0.007]$ | $-0.004$ $[-0.008, +0.001]$ | 20.8 |
+| Allocation by error | $+0.082$ $[-0.004, +0.167]$ | 8 of 10 | $+0.004$ $[-0.000, +0.008]$ | $-0.007$ $[-0.014, +0.000]$ | 28.2 |
+| Both | $+0.106$ $[+0.034, +0.178]$ | 9 of 10 | $+0.006$ $[+0.002, +0.009]$ | $-0.010$ $[-0.015, -0.005]$ | 29.1 |
+| 11 steps per stroke with allocation by error | $-0.007$ $[-0.085, +0.070]$ | 4 of 10 | $-0.006$ $[-0.011, -0.002]$ | $+0.008$ $[+0.003, +0.013]$ | 10.3 |
+
+The cosine schedule at a peak of 0.004 passes the check: $+0.07$ dB, on eight of the ten images, with SSIM better too and at no
+cost in time. It is the default of `run_paint.py` and of the rest of this section (`PainterConfig` keeps the reference's
+constant rate, so that the experiments of Sections 4.2 and 4.3 remain reproducible from their recorded settings). Allocation
+by error does not pass on its own (its interval just includes zero), and on top of the schedule it adds $+0.036$ dB
+($[-0.014, +0.086]$, not significant) for a fifth more time when run alone (40 % in these runs, made two at a time) and almost
+twice the memory, so it stays an option. Its one clear use is speed: with 11 steps per stroke it paints as well as the
+reference settings by PSNR ($-0.01$ dB) in less than half the time (5.2 against 12.1 s alone), with a
+small loss in SSIM and LPIPS, which makes it a candidate for a "fast" setting of the interface of Week 8.
+
+### 4.4.4 Ablation B, second half: progressive against fixed grid and full image
+
+The second half of research question RQ2 compares the three grid modes at the same stroke budget. The protocol is that of
+Section 4.2.10 (the oil brush, the pixel loss, the authors' light renderer, the ten images that are every third of the sorted
+evaluation set, seeds 0 to 2), with the brush defaults of Week 6, so the fixed grid and the full image are measured again
+rather than taken from Table 4.13 (experiment `2026-10-15_ablation_ablation_b_progressive`, 180 paintings). Two controls
+separate the grid schedule from the number of optimizer steps, which the progressive mode multiplies by five: the
+progressive mode with 11 steps per stroke (495 steps, as many as the fixed grid's 500), and the fixed grid with 125 steps per
+stroke (2,500 steps, as many as the progressive mode's 2,475). A sixth configuration uses the centred RMSprop of the
+reference's `demo_prog.py`. All six use the reference's constant learning rate; the schedule of Section 4.4.3 comes on top.
+
+**Table 4.29.** Ablation B, second half: mean over the three seeds of the image average, plus or minus the standard deviation
+of the three seed means, and the paired difference per image to the fixed grid ($n = 10$). The time is the optimization time
+of runs made alone on the desktop (`cuda`; apple, iceland and jay, seed 0; experiment `2026-10-15_ablation_timing_clean_modes`);
+the peak memory is the working memory of the painting on `cuda` (Section 4.4.1).
+
+| Mode | Strokes | Steps | PSNR (dB) | SSIM | LPIPS | Difference in PSNR to the fixed grid, 95 % CI, images won | Time (s) | Peak memory (GB) |
+| :--- | ---: | ---: | ---: | ---: | ---: | :--- | ---: | ---: |
+| Fixed $5 \times 5$ grid | 500 | 500 | 20.31 $\pm$ 0.02 | 0.558 $\pm$ 0.001 | 0.564 $\pm$ 0.000 | | 5.7 | 0.38 |
+| Full image | 500 | 500 | 13.82 $\pm$ 0.25 | 0.444 $\pm$ 0.002 | 0.681 $\pm$ 0.002 | $-6.49$ $[-7.85, -5.12]$, 0 of 10 | 30.8 | 0.38 |
+| Progressive $1 \to 5$ | 495 | 2,475 | 20.55 $\pm$ 0.04 | 0.570 $\pm$ 0.002 | 0.558 $\pm$ 0.004 | $+0.25$ $[+0.09, +0.40]$, 9 of 10 | 12.1 | 0.18 |
+| Progressive, centred RMSprop | 495 | 2,475 | 20.56 $\pm$ 0.05 | 0.571 $\pm$ 0.000 | 0.558 $\pm$ 0.002 | $+0.26$ $[+0.12, +0.40]$, 10 of 10 | | 0.18 |
+| Progressive, 11 steps per stroke | 495 | 495 | 20.38 $\pm$ 0.02 | 0.559 $\pm$ 0.002 | 0.578 $\pm$ 0.001 | $+0.07$ $[-0.14, +0.28]$, 6 of 10 | 2.8 | 0.17 |
+| Fixed grid, 125 steps per stroke | 500 | 2,500 | 20.21 $\pm$ 0.03 | 0.556 $\pm$ 0.001 | 0.556 $\pm$ 0.002 | $-0.10$ $[-0.19, -0.01]$, 3 of 10 | 26.0 | 0.39 |
+
+The progressive mode paints better than the fixed grid by 0.25 dB (Wilcoxon $p = 0.01$), on nine of the ten images; SSIM and
+LPIPS lean the same way but their differences ($+0.012$ and $-0.006$) are within their intervals. The gain ranges from
+$-0.07$ dB on the dark cereal bowl to $+0.69$ dB on the pale photograph of a balloon and a chair (Figure 4.14). The full image
+is far behind, as in Week 5 ($-6.5$ dB, all ten images), and the centred optimizer of the reference changes nothing
+($+0.01$ dB against the plain one, $[-0.04, +0.06]$). The progressive mode takes twice the fixed grid's time (12.1 against
+5.7 s), less than its five times the steps would suggest, because most of its steps are on the coarse levels, whose batches
+are small.
+
+**Figure 4.14.** Target, fixed grid, full image and progressive painting (seed 0) for the images where the progressive mode
+gains most, the median image and the image where it loses most
+(`report/figures/ablation_b_progressive_qualitative.png`).
+
+*It is the schedule, not the steps.* Giving the fixed grid the progressive mode's 2,500 steps does not help it: it loses
+0.10 dB in 4.5 times the time; its neural canvas improves (26.4 to 27.1 dB) while the rasterized painting does not, so the
+extra steps fit the surrogate rather than the brush (LPIPS improves slightly, by 0.008). Cutting the progressive mode to the
+fixed grid's 495 steps costs it 0.18 dB against its full length ($[-0.30, -0.05]$) and leaves it level with the fixed grid
+($+0.07$, not significant) in half the fixed grid's time (2.8 against 5.7 s). The coarse levels are what helps. They lay the
+background in large strokes, so the finest level starts from a canvas that is already close; and a block of the finest level
+is painted on top of strokes that crossed its borders, so the thin seams of canvas that the fixed grid leaves along the block
+borders (Section 4.3.2, Figure 4.9) are covered: they are visible as white flecks in the fixed-grid paintings of Figure 4.14
+and absent from the progressive ones. The progressive mode also needs half the working memory, because its finest level
+renders 9 strokes per block where the fixed grid renders 20.
+
+The neural-canvas PSNR in the experiment folder is lower for the progressive mode (24.5 against 26.4 dB) although its
+painting is better: the progressive mode's last level composites only its own 9 strokes per block over a rasterized canvas,
+and its neural canvas is not comparable with the fixed grid's, whose 20 strokes per block are all drawn by the surrogate.
+
+### 4.4.5 The four brushes in progressive mode
+
+Ablation B and the tuning used the oil brush. The same three configurations (the fixed grid, the progressive mode with the
+reference's settings, and the progressive mode with the cosine schedule) were run for every brush on the ten held-out images
+of Section 4.3.3 with three seeds (experiments `2026-10-15_ablation_brushes_prog_<brush>`, 360 paintings; the 60 oil paintings
+that repeat runs of Table 4.28 came out identical to the last digit).
+
+**Table 4.30.** Every brush on the ten held-out images: mean over the three seeds of the image average, and the paired
+difference per image ($n = 10$) to the fixed grid and, for the cosine schedule, to the progressive mode with the reference's
+constant rate.
+
+| Brush | Fixed grid (dB) | Progressive (dB) | Progressive minus fixed, 95 % CI, images won | Progressive with cosine (dB) | Cosine minus constant, 95 % CI, images won | LPIPS, fixed / progressive with cosine |
+| :--- | ---: | ---: | :--- | ---: | :--- | :--- |
+| Oil | 20.30 | 20.56 | $+0.26$ $[+0.10, +0.43]$, 9 of 10 | 20.63 | $+0.07$ $[+0.03, +0.11]$, 8 of 10 | 0.528 / 0.517 |
+| Watercolour | 19.76 | 21.82 | $+2.06$ $[+1.18, +2.95]$, 10 of 10 | 22.06 | $+0.24$ $[+0.04, +0.45]$, 9 of 10 | 0.494 / 0.441 |
+| Marker pen | 19.09 | 20.83 | $+1.74$ $[+0.67, +2.82]$, 10 of 10 | 21.16 | $+0.32$ $[+0.06, +0.59]$, 9 of 10 | 0.523 / 0.444 |
+| Coloured tape | 21.07 | 22.22 | $+1.14$ $[+0.68, +1.61]$, 10 of 10 | 22.37 | $+0.15$ $[+0.06, +0.25]$, 9 of 10 | 0.466 / 0.416 |
+
+For the other three brushes the progressive mode gains far more than for oil, 1.1 to 2.1 dB on every image, with SSIM and
+LPIPS in agreement (the LPIPS of the marker pen falls from 0.523 to 0.444). The figures show why: on the fixed grid the marker
+pen and the tape leave a regular lattice of black canvas along the block borders, and the watercolour, whose strokes are round
+and start translucent, white gaps between its discs (Figure 4.15). The shape clamp of Section 4.2.1 keeps a stroke's centre
+and end points a tenth of the block away from its border, so a thin stroke cannot reach the border, and with a fixed grid no
+other stroke covers it (Section 4.3.2 met these seams with the marker pen); in the progressive mode the strokes of the coarse
+levels cross the borders of the finer grids, and the canvas no longer shows. The oil strokes are wide and opaque, and reach
+further past their centre, so their seams are smaller (the white flecks of Figure 4.14). The largest gains are on the balloon
+image (6 to 7 dB for watercolour and marker pen), a flat pale background where every seam is an error. The cosine schedule
+helps every brush (0.15 to 0.32 dB, nine of ten images each), more than oil's 0.07 dB on the same images, so it is the
+default for all four.
+
+**Figure 4.15.** Fixed grid and progressive painting with the cosine schedule (seed 0) for the marker pen: the images where the
+progressive mode gains most and least and the median image (`report/figures/brushes_progressive_markerpen_qualitative.png`;
+the same figure for the watercolour and the tape is `brushes_progressive_watercolor_qualitative.png` and
+`brushes_progressive_rectangle_qualitative.png`).
+
+### 4.4.6 Stroke budget (RQ3)
+
+Research question RQ3 asks how quality and time grow with the stroke budget. Every brush painted the ten images of
+Ablation B (every third of the evaluation set) with three seeds at budgets of 100, 300, 500 and 1,000 strokes, in the
+progressive mode with the cosine schedule (experiments `2026-10-15_ablation_scaling_<brush>`, 480 paintings). The equal
+split of the reference paints $\lfloor B / 55 \rfloor \cdot 55$ of a budget $B$, so the four budgets give 55, 275, 495 and 990
+strokes, and the curves are drawn against the strokes actually painted. Every budget uses about 500 optimizer steps per level
+(the steps per stroke are $\lfloor 500 / n \rfloor$ for $n$ strokes per block, as in the reference), so the budget changes
+how many strokes the steps are spread over, not how many steps there are; the time grows because each step renders more
+strokes. The times in Table 4.31 come from separate runs made alone on the desktop, on three images with one seed
+(`2026-10-15_ablation_timing_clean_scaling_<brush>`).
+
+**Table 4.31.** Quality against the number of strokes painted: mean over the three seeds of the image average (ten images),
+and the optimization time of runs made alone (three images, seed 0).
+
+| Brush | Strokes | PSNR (dB) | SSIM | LPIPS | Optimization (s) | Rasterization (s) | Peak memory (GB) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Oil | 55 | 17.65 $\pm$ 0.05 | 0.551 | 0.606 | 8.6 | 0.2 | 0.04 |
+|  | 275 | 20.34 $\pm$ 0.03 | 0.573 | 0.561 | 9.8 | 0.8 | 0.10 |
+|  | 495 | 20.64 $\pm$ 0.05 | 0.572 | 0.554 | 11.7 | 1.4 | 0.17 |
+|  | 990 | 20.73 $\pm$ 0.02 | 0.570 | 0.548 | 16.9 | 2.7 | 0.34 |
+| Watercolour | 55 | 18.39 $\pm$ 0.11 | 0.617 | 0.546 | 9.1 | 0.2 | 0.04 |
+|  | 275 | 21.42 $\pm$ 0.05 | 0.657 | 0.483 | 10.4 | 0.8 | 0.10 |
+|  | 495 | 21.95 $\pm$ 0.08 | 0.665 | 0.469 | 12.5 | 1.4 | 0.17 |
+|  | 990 | 22.07 $\pm$ 0.03 | 0.673 | 0.458 | 17.6 | 2.7 | 0.34 |
+| Marker pen | 55 | 17.75 $\pm$ 0.22 | 0.575 | 0.558 | 8.9 | 0.2 | 0.04 |
+|  | 275 | 20.80 $\pm$ 0.05 | 0.644 | 0.482 | 10.4 | 0.8 | 0.10 |
+|  | 495 | 21.11 $\pm$ 0.04 | 0.653 | 0.464 | 12.4 | 1.4 | 0.17 |
+|  | 990 | 21.07 $\pm$ 0.03 | 0.658 | 0.461 | 17.1 | 3.0 | 0.34 |
+| Coloured tape | 55 | 13.77 $\pm$ 0.29 | 0.441 | 0.661 | 9.2 | 0.1 | 0.04 |
+|  | 275 | 21.41 $\pm$ 0.02 | 0.653 | 0.477 | 10.8 | 0.5 | 0.10 |
+|  | 495 | 22.22 $\pm$ 0.04 | 0.674 | 0.442 | 12.7 | 0.9 | 0.17 |
+|  | 990 | 22.74 $\pm$ 0.04 | 0.691 | 0.407 | 17.7 | 1.8 | 0.34 |
+
+**Figure 4.16.** PSNR, LPIPS and optimization time against the number of strokes painted, one curve per brush; the error bars
+are the standard deviation over the three seeds (`report/figures/scaling_strokes.png`).
+
+The quality saturates. From 55 to 275 strokes every brush gains 2.7 to 3.1 dB (7.6 dB for the tape, whose few strokes
+leave most of its black canvas bare), from 275 to 495 a further 0.3 to 0.8 dB, and from 495 to 990, at 1.4 times the
+optimization time and twice the rasterization time, at most 0.1 dB for oil, watercolour and marker pen ($+0.10$, $+0.12$ and
+$-0.04$ dB, none significant over the ten images). Only the tape keeps improving: $+0.53$ dB ($[+0.24, +0.81]$, nine of ten
+images) with SSIM and LPIPS in agreement ($+0.017$ and $-0.035$, both significant). With the light renderers and $M = 5$, 500
+strokes are therefore close to the useful maximum for three of the four brushes, and the default of 500 is kept; the tape
+gains from 1,000. A finer grid (a larger $M$)
+or the full-size renderer might move the knee; neither was measured here.
+
+### 4.4.7 Speed and memory
+
+The plan for this week lists four kinds of performance work: batching the strokes of the grid cells, `torch.compile`, mixed
+precision, and memory-aware batch sizes for `mps` and the CPU. Measuring where the time goes came first, and it found a
+fifth, larger cause on the desktop.
+
+*Windows' power throttling.* A painting that ran from a background shell got slower the longer it ran. On the CPU an
+optimizer step of the light renderer with 512 strokes took 0.31 s in a fresh process but 1.24 s after the first large steps,
+and from then on every step was about 3.5 times slower, small ones included. The count of page faults per step did not
+change, so memory was not the cause. Windows 11 throttles a busy process that is not in the foreground ("EcoQoS"): it moves
+its threads to the efficiency cores of the i5-13400F at a low clock. Opting the process out of that
+(`core.device.disable_power_throttling`, one call to `SetProcessInformation`) removed the slowdown. `scripts/profile_step.py`
+reproduces it by forcing the throttling on and off in fresh processes (experiment `2026-10-15_profile_step-4`): a CPU step
+takes 3.5 to 3.9 times as long when throttled (0.09 against 0.33 s for 128 strokes, 0.32 against 1.24 s for 512), and on
+`cuda`, where the time of a step is spent on the CPU launching small kernels (below), a fixed-grid painting of `apple` takes
+7.0 instead of 5.8 s, a progressive one 21.4 instead of 12.1 s, and the rasterization of the 512-pixel painting 2.7 instead of
+1.3 s (two paintings each). Every script that paints or times (`run_paint.py`,
+`run_ablation.py`, `compare_with_original.py`, `benchmark.py`, `device_check.py` and the renderer training) now opts out first,
+and so does the reference's demo when `compare_with_original.py` runs it. This is very likely the "factor of two over a day" by
+which the desktop's speed was noted to vary in Weeks 5 and 6 (Sections 4.2.12 and 4.3.7): it depends on whether Windows
+considered the process to be in the foreground. The timings of those weeks are therefore upper bounds, and only their ratios
+within one experiment should be read. Whether the MacBook throttles in a similar way is not known; its benchmark runs will
+show whether its timings drift.
+
+*Where a step's time goes on `cuda`.* With the throttling out of the way, `scripts/profile_step.py` profiled one fixed-grid
+painting of `apple` (500 strokes, 500 optimizer steps; experiment `2026-10-15_profile_step-4`): 143,571 kernel launches, about
+290 per step, and the GPU ran kernels for 4.7 of the 7.3 s the painting took under the profiler, so it is busy about two thirds
+of the time. The rest is the CPU launching small kernels: the light renderer works on $32 \times 32$ images, and a step
+composites the strokes one at a time. Three ways to make a step cheaper were timed on the same painting (Table 4.32).
+
+**Table 4.32.** Optimization time of one fixed-grid painting (`apple`, 500 strokes, light oil renderer, `cuda`, seed 0), mean of
+two runs each, and the PSNR of the painting (experiment `2026-10-15_profile_step-4`; earlier runs of the script gave the same
+times within 0.1 s).
+
+| Variant | Optimization (s) | Change | PSNR (dB) |
+| :--- | ---: | ---: | ---: |
+| As built: strokes composited one at a time, float32 | 5.82 | | 20.73 |
+| Strokes composited in one closed-form product | 5.23 | $-10$ % | 20.48 |
+| Renderer under autocast to float16 | 4.36 | $-25$ % | 20.86 |
+| Renderer under autocast to bfloat16 | 4.36 | $-25$ % | 20.63 |
+
+*Batching.* The engine already renders the strokes of all blocks of a level as one batch, which is the batching the plan asked
+for. Compositing the strokes in one closed-form product,
+$C = \sum_i A_i F_i \prod_{j > i} (1 - A_j) + C_0 \prod_j (1 - A_j)$ with one cumulative product, saves 10 % (it is the same
+function, checked in the tests, but its rounding differs, and the painting with it). *Mixed precision* saves a quarter: the
+renderer's matrix products and convolutions run in 16-bit floating point while the stroke parameters, the loss and the
+optimizer stay in float32 (`PainterConfig.precision`). bfloat16 keeps float32's exponent range, so the small gradients of a mean
+pixel loss over a batch of blocks cannot underflow, as they can in float16 without a gradient scaler; it is the one the
+package offers (`--precision bfloat16`). Whether it changes the paintings is measured below. *`torch.compile`* needs the Triton
+compiler for GPU code generation, which is not available for Windows in this PyTorch build, so it could not be measured on the
+desktop.
+
+**Table 4.33.** The progressive mode with the cosine schedule in bfloat16 against float32 on the ten held-out images, three seeds
+(experiments `2026-10-15_ablation_precision_<brush>`, 240 paintings): paired difference per image with its 95 % interval and
+the number of images improved, and the change in optimization time (in these runs, made two at a time) and peak memory.
+
+| Brush | PSNR (dB) | SSIM | LPIPS | Time | Peak memory (GB) |
+| :--- | :--- | :--- | :--- | ---: | ---: |
+| Oil | $+0.04$ $[-0.01, +0.09]$, 7 of 10 | $-0.002$ $[-0.003, -0.000]$ | $+0.001$ $[-0.002, +0.004]$ | $-12$ % | 0.18 to 0.10 |
+| Watercolour | $-0.13$ $[-0.21, -0.04]$, 1 of 10 | $-0.001$ $[-0.005, +0.003]$ | $-0.001$ $[-0.005, +0.004]$ | $-15$ % | 0.17 to 0.10 |
+| Marker pen | $+0.08$ $[-0.04, +0.20]$, 8 of 10 | $-0.002$ $[-0.006, +0.001]$ | $+0.004$ $[-0.001, +0.009]$ | $-13$ % | 0.18 to 0.10 |
+| Coloured tape | $-0.02$ $[-0.10, +0.06]$, 5 of 10 | $-0.000$ $[-0.003, +0.002]$ | $-0.001$ $[-0.004, +0.003]$ | $-13$ % | 0.18 to 0.10 |
+
+Three brushes paint as well in bfloat16, but the watercolour loses 0.13 dB, on nine of the ten images. The saving in time
+depends on the load. In these runs, made two at a time so that the GPU was shared, bfloat16 was 12 to 15 % faster; run alone,
+the progressive painting of three images took 13.4 s in bfloat16 against 12.3 s in float32
+(`2026-10-15_ablation_timing_clean_modes`), 9 % slower: its levels render few strokes per step, so the step is limited by the
+launches, and the conversions add launches. Only the large batches of the fixed grid (Table 4.32) gain on an idle GPU. The
+working memory falls by about 40 % in every case. Reduced precision is therefore not adopted as a default; it remains the
+option `--precision bfloat16` of `run_paint.py`, worth using when memory is short.
+
+*Memory.* With the light renderers the working memory of a painting is small: the fixed grid peaks at 0.38 GB and the
+progressive mode at 0.17 GB on `cuda` (Table 4.29), and it grows in proportion to the strokes per block, to 0.34 GB for 990
+strokes in the progressive mode (Table 4.31); allocation by error almost doubles it, because the batch is padded to the
+largest block's count. The full-size renderers ($128 \times 128$ pixels, 18.1 M parameters) need ten to twenty times more: painting
+`apple` with the full oil renderer took 3.4 to 3.5 GB in the fixed grid and 1.5 to 1.6 GB in the progressive mode at 500
+strokes, and 6.8 and 3.1 to 3.2 GB at 1,000 strokes (experiments `2026-10-15_ablation_timing_clean_full_renderer` and its
+`_repeat`, the same values within 0.1 GB in both). The fixed grid with 1,000 strokes thus comes close to the 8 GB of the
+RTX 3070, and more strokes would not fit; the progressive mode stays below half of it. The plan's "memory-aware batch sizing" is
+therefore not needed for the light renderers on any of the three devices, and the progressive mode is the memory-aware choice
+for the full ones. (The full renderer also paints better, 23.7 dB against 21.4 dB for the light one on this image in the
+progressive mode with the same settings, but its optimization time varied from 46 to 252 s between two runs of the same
+painting, and only one image was painted, so neither number measures the full renderers; that comparison is not part of this
+week's experiments.)
+
+*Hardware benchmark, first pass.* `scripts/benchmark.py` paints the same three images (every tenth of the evaluation set) with
+every brush in the progressive mode with the pipeline's defaults and in the fixed grid, seed 0, on one device profile, and
+writes one folder per brush (`2026-10-15_benchmark_<profile>_<brush>`). On the desktop it ran for `cuda` (the RTX 3070) and
+`cpu` (the i5-13400F, 10 threads), each alone; the `mps` profile and the MacBook's CPU are to be run with the same commit on
+the MacBook.
+
+**Table 4.34.** The hardware benchmark on the desktop: means over three images, seed 0, the light renderers. The CPU's memory is
+the rise of the process's resident memory (Section 4.4.1), so it is not the same quantity as the GPU's tensor memory. The PSNR
+is that of the `cuda` paintings; the `cpu` paintings differ from them by $-0.01$ to $+0.35$ dB, the rounding of the two backends
+taking the chaotic optimization to different strokes.
+
+| Brush | Mode | `cuda`: optimize (s) | `cuda`: peak memory (GB) | `cpu`: optimize (s) | `cpu`: memory rise (GB) | Rasterize, both (s) | PSNR (dB) |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Oil | progressive | 12.0 | 0.18 | 130 | 0.13 | 1.5 | 22.74 |
+|  | fixed | 5.6 | 0.38 | 108 | 0.19 | 1.4 | 22.31 |
+| Watercolour | progressive | 12.4 | 0.18 | 130 | 0.11 | 1.5 | 23.75 |
+|  | fixed | 5.7 | 0.38 | 108 | 0.22 | 1.4 | 20.15 |
+| Marker pen | progressive | 12.4 | 0.18 | 131 | 0.10 | 1.6 | 23.32 |
+|  | fixed | 5.7 | 0.38 | 109 | 0.18 | 1.5 | 19.11 |
+| Coloured tape | progressive | 12.9 | 0.18 | 131 | 0.09 | 1.0 | 24.70 |
+|  | fixed | 5.7 | 0.38 | 109 | 0.19 | 1.0 | 22.80 |
+
+On the CPU a painting takes about two minutes: 130 s in the progressive mode and 108 s on the fixed grid, 10 and 19 times as
+long as on the GPU. The ratio of the two modes differs between the devices (1.2 on the CPU, 2.2 on the GPU) because they are
+limited by different things: on the CPU every step costs in proportion to the strokes it renders, and the two modes render
+about as many strokes in all; on the GPU the progressive mode's five times as many steps cost launches whatever their size.
+The time does not depend on the brush on either device (the four light renderers have the same size); only the
+rasterization of the final painting does (0.9 to 1.7 s). Memory is no constraint for the light renderers on any device.
+
+### 4.4.8 End-to-end test on many inputs
+
+The evaluation set is uniform by construction: thirty PNG squares of 512 pixels (Section 5.2). A user's photographs are not,
+so `scripts/check_end_to_end.py` runs `run_paint.py` with its defaults (progressive, 500 strokes, the cosine schedule) on
+twenty inputs and checks each outcome (experiment `2026-10-15_check_end_to_end`). The brushes and the three fits are taken in
+turn, so that every brush meets every fit.
+
+**Table 4.35.** The end-to-end check: input, brush and fit, the size of the saved painting, and its PSNR against the fitted
+photograph (`cuda`; optimization took 11.7 to 13.3 s for every painting but the first of the process, 23.5 s).
+
+| Input | Size | Brush, fit | Saved painting | PSNR (dB) |
+| :--- | :--- | :--- | :--- | ---: |
+| alien.jpg (reference test image) | 494 x 496 | oil, stretch | 509 x 512 | 19.17 |
+| apple.jpg | 1021 x 854 | watercolour, crop | 512 x 512 | 22.48 |
+| cube2.jpg | 533 x 483 | marker pen, pad | 512 x 512 | 20.55 |
+| diamond.jpg | 396 x 377 | tape, stretch | 512 x 487 | 16.07 |
+| diamond2.jpg | 477 x 463 | oil, crop | 512 x 512 | 19.98 |
+| fire.jpg | 748 x 709 | watercolour, pad | 512 x 512 | 18.67 |
+| iceland.jpg | 568 x 452 | marker pen, stretch | 512 x 407 | 21.07 |
+| jay.jpg | 729 x 640 | tape, crop | 512 x 512 | 24.35 |
+| joker.jpg | 559 x 563 | oil, pad | 512 x 512 | 18.58 |
+| sunflowers.jpg | 677 x 672 | watercolour, stretch | 512 x 508 | 19.89 |
+| yosemite.jpg | 640 x 480 | marker pen, crop | 512 x 512 | 19.90 |
+| grey-scale PNG (generated) | 400 x 300 | tape, pad | 512 x 512 | 27.04 |
+| PNG with an alpha channel | 400 x 300 | oil, stretch | 512 x 384 | 28.98 |
+| 4:1 panorama, JPG | 1600 x 200 | watercolour, crop | 512 x 512 | 29.42 |
+| 1:3 portrait, JPG | 200 x 1200 | marker pen, pad | 512 x 512 | 23.22 |
+| 40 x 30 thumbnail, PNG | 40 x 30 | tape, stretch | 512 x 384 | 30.10 |
+| 16-bit grey TIFF | 400 x 300 | oil, crop | 512 x 512 | 31.20 |
+| random bytes named `.png` | | | refused: "cannot decode" | |
+| `.gif` file | | | refused: unsupported format, with the list of supported ones | |
+| 6332 x 6332 PNG (40.1 M pixels) | | | refused: more than the limit of 40,000,000 pixels | |
+
+All twenty behaved as expected: seventeen paintings, each saved in the photograph's aspect ratio under `stretch` and square
+under `crop` and `pad`, and three refusals with a message and without an output folder. Preparing the check found one bug: a
+16-bit grey image (PNG or TIFF), which Pillow opens in mode `I;16`, loaded almost white, because converting it to RGB clips its
+values at 255 of 65,535; `image_io.load_image` now scales such images to $[0, 1]$ (tested), and the painting of the generated
+16-bit TIFF in Table 4.35 was made after the fix. The generated images are smooth gradients, which is why they score 23 to
+31 dB.
+
+### 4.4.9 Summary of the section
+
+**Table 4.36.** What the Week 7 choices are worth: paired PSNR difference per image, with the brushes and images concerned.
+
+| Choice | Alternative | Difference in PSNR (dB) | Time on `cuda` | Where |
+| :--- | :--- | ---: | :--- | :--- |
+| Progressive grid $1 \to 5$ | fixed $5 \times 5$ grid | $+0.25$ (oil), $+1.1$ to $+2.1$ (watercolour, marker pen, tape), every image for the last three | $\times 2.1$ | Tables 4.29, 4.30 |
+| Full image | fixed $5 \times 5$ grid | $-6.5$ (oil) | $\times 5.4$ | Table 4.29 |
+| Cosine schedule, peak 0.004 | constant 0.002 | $+0.07$ (oil) to $+0.32$ (marker pen) | same | Tables 4.28, 4.30 |
+| Allocation by error | equal split | $+0.08$ (oil; not significant), $+0.04$ on top of the schedule | $\times 1.2$, memory $\times 1.7$ | Table 4.28 |
+| 11 steps per stroke with allocation by error | 55 steps, equal split | $-0.01$ (oil) | $\times 0.4$ | Table 4.28 |
+| bfloat16 | float32 | $-0.13$ to $+0.08$ (brush-dependent) | $\times 1.09$ alone, memory $\times 0.6$ | Table 4.33 |
+| 990 strokes | 495 | $+0.10$ to $+0.12$ (not significant), $-0.04$ (marker pen), $+0.53$ (tape) | $\times 1.4$ | Table 4.31 |
+| Opting out of Windows power throttling | throttled | identical paintings | $\times 0.57$ (progressive), $\times 0.25$ to $0.29$ per CPU step | Section 4.4.7 |
+
+The answer to the second half of RQ2 is that the progressive mode is the best of the three: better than the fixed grid for
+every brush, by a quarter of a decibel for oil and by one to two decibels for the brushes whose thin strokes leave the fixed
+grid's block borders bare, at twice the time and half the memory; the full image is far behind. The gain comes from the
+coarse-to-fine schedule, not from its five-fold number of optimizer steps. To RQ3, quality grows quickly up to about 300
+strokes and is close to saturation at 500 for every brush but the tape, while the time grows steadily (9 s at 100 strokes,
+12 s at 500 and 17 s at 1,000 on `cuda`). To RQ4, a painting of 500 strokes in the progressive mode takes 12 s on the RTX 3070
+and 130 s on the i5-13400F (the fixed grid 5.7 and 108 s); every setting with the light renderers stays below 0.4 GB of
+working memory, and the full renderers need up to 6.8 GB.
+
+The pipeline that `run_paint.py` runs by default is therefore the progressive mode with the cosine schedule at a peak of
+0.004 and 500 strokes. The limits: the options were tuned on oil and checked on ten images; the brushes and budgets used the
+authors' light renderers only; the timings are those of one desktop, measured alone with three images and one seed, and the
+`mps` profile has still to be run on the MacBook.

@@ -4,7 +4,7 @@ Planned layout (proposal section 3, RESEARCH_PLAN Week 8): image upload or sampl
 picker (``core.image_io.list_sample_images``), brush selector (four brushes),
 stroke-count slider, grid mode (full image / fixed grid / progressive), canvas
 colour, start button, live progress bar and intermediate canvas preview fed by the
-``ProgressivePainter`` progress callback, before/after comparison, stroke-by-stroke
+``paint_image`` progress callback (``pipeline.progressive_painter.Progress``), before/after comparison, stroke-by-stroke
 playback slider, and download buttons for PNG/JPG, MP4 and GIF (Week 9).
 Run with ``python -m neural_painter.app.gradio_app``.
 """
