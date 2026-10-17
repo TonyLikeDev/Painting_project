@@ -42,7 +42,7 @@ from ..core.differentiable_canvas import blank_canvas, composite_sequence
 from ..core.grid import block_to_global, flatten_blocks, img2patches
 from ..core.morphology import dilation2d, erosion2d
 from ..core.procedural_rasterizer import ProceduralRasterizer
-from ..core.stroke_models import BrushSpec
+from ..core.stroke_models import BrushSpec, get_brush
 from ..losses.pixel_loss import PixelLoss, psnr
 from ..losses.sinkhorn import SinkhornLoss
 from ..models.neural_renderer import NeuralRenderer
@@ -301,6 +301,22 @@ def save_strokes_npz(path: str | Path, strokes: np.ndarray, spec: BrushSpec, **e
     shape, color, alpha = spec.split(v)
     np.savez(path, x_ctt=shape, x_color=color, x_alpha=alpha, brush=spec.name, **extra)
     return path
+
+
+def load_strokes_npz(path: str | Path, brush: str | None = None) -> tuple[np.ndarray, BrushSpec, dict]:
+    """Read a stroke file of :func:`save_strokes_npz` or of the original code: ``(strokes (N, d), spec, other entries)``.
+
+    ``brush`` names the brush of an original file, which does not record it; a file that records one must agree with it."""
+    with np.load(path) as data:
+        entries = {k: data[k] for k in data.files}
+    saved = str(entries.pop("brush")) if "brush" in entries else None
+    if saved is None and brush is None:
+        raise ValueError(f"{path} does not say which brush drew it; name the brush")
+    spec = get_brush(saved or brush)
+    if brush is not None and get_brush(brush).name != spec.name:
+        raise ValueError(f"{path} was drawn with {spec.name}, not {get_brush(brush).name}")
+    strokes = np.concatenate([entries.pop("x_ctt"), entries.pop("x_color"), entries.pop("x_alpha")], -1).reshape(-1, spec.dim)
+    return strokes.astype(np.float32), spec, {k: v.item() if v.ndim == 0 else v for k, v in entries.items()}
 
 
 def config_dict(config: PainterConfig) -> dict:

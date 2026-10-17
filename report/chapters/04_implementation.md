@@ -2,8 +2,8 @@
 
 This chapter describes how the method of Chapter 2 is implemented in the `neural_painter`
 package. It grows week by week; this version covers the neural renderer (Week 4), the
-optimization of strokes against a target image (Week 5), the four brush materials (Week 6) and the automatic pipeline
-(Week 7). Unless a
+optimization of strokes against a target image (Week 5), the four brush materials (Week 6), the automatic pipeline
+(Week 7) and the web interface (Week 8). Unless a
 sentence says otherwise, every number in it comes from a script or test in the repository, and
 the experiment folder it was produced in is named next to it.
 
@@ -1518,3 +1518,202 @@ The pipeline that `run_paint.py` runs by default is therefore the progressive mo
 0.004 and 500 strokes. The limits: the options were tuned on oil and checked on ten images; the brushes and budgets used the
 authors' light renderers only; the timings are those of one desktop, measured alone with three images and one seed, and the
 `mps` profile has still to be run on the MacBook.
+
+## 4.5 The web interface
+
+The proposal promises a web application in which a user chooses a photograph, a brush, a number of strokes and a grid mode, and
+sees the painting appear; the plan for Week 8 adds a live progress bar, a before / after comparison, a stroke-by-stroke
+replay and error handling for oversized and unsupported images. This section describes the interface that does this
+(`neural_painter/app/gradio_app.py`), how it is built on the pipeline of Section 4.4, how it was tested, and the usability test
+with users who are not developers.
+
+### 4.5.1 The page
+
+Figure 4.17 shows the page as it opens. The left column holds the input and the settings: the photograph (1), dropped onto the
+box, chosen with the file dialog or pasted, or one of six sample photographs from the evaluation set (2); the brush (3); the number
+of strokes, from 100 to 1,000 (4); how to paint, coarse to fine (the default and the recommendation of Section 4.4.4), on the
+fixed $5 \times 5$ grid or on the whole image at once (5); and the speed, the pipeline's best quality or the fast setting of
+Section 4.4.3, which paints about as well in less than half the time (6). A closed panel, *More options*, holds what most users
+need not touch: the canvas colour, how a photograph that is not square is fitted (keep its shape, crop or pad, Section 5.1.3)
+and the random seed. The **Paint** button (7) starts the painting and **Stop** ends it. The right column shows one line of
+status (8) and five tabs: the painting in progress (9), the photograph and the painting side by side, the finished painting,
+the replay and the time-lapse video (Section 4.6); under them five buttons download the painting as a PNG or a JPG, the
+time-lapse as an MP4 video or a GIF, and the strokes in the reference's `.npz` layout.
+
+**Figure 4.17.** The page before a painting, with a photograph chosen (`report/figures/app_overview_annotated.png`): (1) photo,
+(2) sample photos, (3) brush, (4) number of strokes, (5) how to paint, (6) speed, (7) the Paint button, (8) the status line,
+(9) the painting in progress.
+
+While the painting runs (Figure 4.18a) the status line says which grid level is being painted, how many strokes of the total
+are done and how long it has taken, a progress bar runs over it, and the tab of the painting in progress shows the canvas as the
+optimizer sees it, updated about three times a second: first the coarse strokes of the $1 \times 1$ level, then the finer levels
+on top. When the painting is finished the page switches by itself to the photograph and the painting side by side, with a
+slider that the user drags across them (Figure 4.18b); the status line gives the number of strokes, the time and the folder
+under `output/` where the painting, the fitted photograph and the strokes were saved. The replay tab has a second slider, in
+strokes, that shows the painting after any number of them, from the blank canvas at 0 (Figure 4.18c), and a few seconds after
+the painting the time-lapse tab plays it as a video (Figure 4.21). A photograph that cannot be painted is refused with a
+message in a box on the page (Figure 4.19); so is a press of Paint with no photograph.
+
+**Figure 4.18.** The result column (a) while the watercolour painting of `apple` runs, at the $2 \times 2$ level, (b) when it is
+finished, with the before / after slider, and (c) in the replay after 170 of its 495 strokes (`report/figures/app_flow.png`;
+the full pages are `app_en_painting.png`, `app_en_compare.png` and `app_en_replay.png`).
+
+**Figure 4.19.** A file that is not an image refused, with the page in Vietnamese (`report/figures/app_vi_error.png`).
+
+The page speaks Vietnamese or English. It opens in Vietnamese when the browser lists Vietnamese among its languages, else in
+English, and a switch at the top right changes every label, choice and message at once. Gradio has a translation mechanism of its
+own, but it activates only the languages it ships (33 in this version) and Vietnamese is not one of them; the page therefore
+sets its labels from Python, from one table of texts in both languages, which is also where the messages of the status line
+and of the error boxes come from. The users of the usability test (Section 4.5.4) read Vietnamese; the report's screenshots are
+in English.
+
+### 4.5.2 How it works
+
+The page is a Gradio `Blocks` application. The Paint button calls a Python generator that checks the photograph, fits it to the
+512-pixel square (Section 4.4.1), loads the brush's renderer once per session, and starts `paint_image` in a worker thread with
+the pipeline's settings (Section 4.4.3). The worker's progress events (Section 4.4.1) go into a queue; the generator takes the
+newest of them every 0.3 s and sends the page the status line, the progress fraction and the neural canvas enlarged to 512
+pixels, so that a fast painter does not flood the page with updates. A second hook of `paint_image`, called after every stroke is
+drawn on the 512-pixel painting, keeps about a hundred frames of the painting (every fifth stroke for 500 strokes) for the replay
+slider, so that the replay needs no second rendering. When the worker is done the generator saves the results like
+`run_paint.py` and sends the final page state: the comparison, the painting, the replay range, the download buttons and the
+switch of the tab. Then, with the painting already on the screen and the status line saying so, it writes the MP4 and the GIF
+of Section 4.6 (about 4 s for 500 strokes) and sends the video and their two download buttons. The images of the final state are
+sent as updates (`gr.update(value=...)`), not as plain values: Gradio 6.27 sends each later step of a generator as a difference
+from the previous one, and an output the time-lapse step leaves unchanged then arrived empty in a tab that had not been opened
+yet, so the Painting and Replay tabs stayed blank (found in the first use of the page; reproduced with a three-tab page).
+
+Three details matter for robustness. First, the Paint event receives the uploaded file unprocessed: by default Gradio opens an
+uploaded image with Pillow before the application sees it, so a damaged file would produce Gradio's generic error, while
+`image_io` gives the specific messages of Section 4.4.8 (not an image, an unsupported format, more than 40 million pixels); the
+server also refuses uploads above 40 MB. Second, Stop cancels the event, and the generator's clean-up sets a flag that the
+worker checks at its next progress event, so a stopped painting ends within about a second instead of running on in the
+background. Third, the queue runs one painting at a time (`concurrency_limit=1`), so two browser tabs cannot run the GPU out of
+memory; the second painting waits in Gradio's queue.
+
+The interface adds no settings of its own: every choice on the page is a parameter of `paint_image` or of `PainterConfig` that
+Section 4.4 measured, and the defaults are the pipeline's.
+
+### 4.5.3 Starting it and testing it
+
+On Windows the application starts with a double-click on `Start_App.bat` in the project folder, which runs
+`python -m neural_painter.app.gradio_app` with the project's interpreter and opens the page in the browser; on macOS the same
+is `start_app.command`. A `README.md` gives the quick start; it also makes `pip install -e .[app]` work, which failed before
+because `pyproject.toml` names a README that did not exist.
+
+The interface is tested at two levels. Five tests in `tests/test_gradio_app.py` call the page's functions directly: the page
+builds and every label exists in both languages; damaged files, unsupported formats and a missing photograph are refused with
+the right message; a painting of a 2:1 photograph runs through the generator and returns a comparison in the photograph's
+shape, a replay with one frame per stroke after the blank canvas, the files in `output/` (with the JPG, the MP4 and the GIF), the
+switch to the comparison tab and then the time-lapse; and closing the
+generator, which is what Stop does, ends the worker. The second level is the real page in a real browser:
+`scripts/app_screenshots.py` starts the application and a headless Chrome, and, in English and in Vietnamese, switches the
+language and back, uploads a photograph, chooses the watercolour, presses Paint, waits for the live progress line, the finished
+painting and the automatic switch to the comparison, drags the replay slider, opens the time-lapse tab and waits until Chrome is
+playing the MP4, checks that the five download buttons are enabled, opens the Painting tab for the first time and waits for the
+painting in it, uploads a damaged file and waits for its error
+message, saving a screenshot at each step (the figures of this section). It drives Chrome through its debugging protocol with a
+small WebSocket client of its own, so it needs no browser-automation package. In both languages every step passed. For the
+watercolour painting of `apple` with 500 strokes the status line reported 16 to 19 s of optimization and rasterization on the
+desktop's GPU in every run made for this section, against about 14 s for the same work without the page (12.5 s and 1.4 s, Table 4.31): the
+difference is the page's updates and replay frames, with the headless browser running on the same machine.
+
+Building the page found two problems that the tests now cover: the coarse levels' live preview was shown at its natural size of
+32 pixels, too small to see (it is now enlarged), and the comparison tab did not come forward by itself when the painting was
+done (the page now switches to it).
+
+### 4.5.4 Usability test
+
+The plan asks for a test with 5 to 8 users who are not developers, measuring task completion, the time to the first painting and
+the problems found, and for the main problems to be fixed. The protocol is in `report/notes/usability_test.md` and the participant
+sheet, in Vietnamese, in `report/notes/usability_test_phieu_vi.md` (and as a PDF to print). Each participant does five tasks
+without help unless stuck for more than two minutes: paint the sample photograph of apples with oil paint (T1, whose time is the
+time to the first painting), paint a photograph of their choice with watercolour (T2), compare the painting with the
+photograph and look at it half-done (T3), make a quicker painting with fewer strokes with the marker pen (T4), and save the
+painting (T5). The observer notes for every task whether it was done alone, with a hint or not at all, its time, and every
+problem seen or heard, with a severity from 1 (cosmetic) to 3 (blocks the task). Afterwards the participant answers the ten
+statements of the System Usability Scale [Brooke 1996] in a Vietnamese translation, scored from 0 to 100 (about 68 is the
+average of many systems [Sauro 2011]), and three open questions. `scripts/usability_summary.py` turns the three sheets
+(`tasks.csv`, `sus.csv`, `issues.csv`) into the tables of the results: completion per task, the time to the first painting, the
+SUS score and the problems ranked by the number of participants who met them times their severity.
+
+*Results.* The sessions are planned for 21 and 22 October 2026; their results, and the fixes they lead to, will be added
+here.
+
+## 4.6 Time-lapse export
+
+The proposal promises a video of the painting being made, stroke by stroke from the blank canvas, as an MP4 and as a GIF that the
+user can download; the plan for Week 9 adds a frame stride and a resolution that can be chosen. This section describes how
+`neural_painter/export/video_recorder.py` makes them, where they are offered and what they cost.
+
+### 4.6.1 How the frames are made
+
+A time-lapse is drawn again from the painting's strokes, not recorded while the painting is made. The strokes are the painting:
+the procedural rasterizer draws them in their drawing order onto the blank canvas, which is exactly how the painting itself was
+rasterized (Section 4.4.1), so the last frame is the painting, and it takes about 1.4 s for 500 strokes at 512 pixels (Table
+4.31). Drawing again has three advantages over recording. The painter does not keep hundreds of frames in memory while it
+optimizes. A time-lapse can be made afterwards from any saved painting: the experiments' paintings of the earlier sections, the
+results of `run_paint.py` and of the web page, and the original code's stroke files. And because strokes have no resolution, the
+frames can be drawn at any size, not only at the 512 pixels the painting was drawn at.
+
+A time-lapse has one frame of the blank canvas, one after every `stride`-th stroke and one after the last stroke, and then holds
+the finished painting (for 1.5 s by default), so that a GIF, which loops, does not jump back to the blank canvas at once. The frames
+can be resized to the photograph's aspect ratio, as `final.png` is. The file name chooses the format:
+
+* **MP4**: H.264 in the `yuv420p` pixel format, written by the ffmpeg that comes with `imageio-ffmpeg` (already a dependency of the
+  package), at a constant rate factor of 20, with the file's index at its start so that a browser can play it before it has all
+  of it, and with odd sides rounded up to even ones, which 4:2:0 chroma needs. The original code wrote its `_animated.mp4` with
+  OpenCV's `MP4V` code, MPEG-4 Part 2, which desktop players accept but browsers do not: their `<video>` element decodes H.264 and
+  not MPEG-4 Part 2, so the web page could not have shown the original's video.
+* **GIF**: written with Pillow, every frame mapped onto one palette of 256 colours taken from the finished painting and the blank
+  canvas, without dithering. With a palette of its own per frame, the default, the colours of areas that do not change jump from
+  frame to frame; with error-diffusion dithering they shimmer, because a new stroke changes the error carried into everything
+  after it in the scan order. With one palette and no dithering a pixel that does not change keeps its colour; the price is some
+  banding in smooth gradients. For the oil painting of `apple` with 495 strokes the last frame differs from the painting by about
+  4 grey levels of 255 on average in the GIF and 2 in the MP4.
+
+The settings the page and `run_paint.py` use (`MP4_SETTINGS`, `GIF_SETTINGS`) keep both files short: the MP4 at the painting's
+size and 40 frames a second, the rate of the original's video, with a stride that keeps it to at most 500 frames (12.5 s plus the
+hold); the GIF with about 100 frames at 20 a second (5 s plus the hold).
+
+**Figure 4.20.** Frames of the time-lapse of the oil painting of `jay` (progressive pipeline, 495 strokes): the blank canvas and
+the canvas after 9, 45, 126, 270 and 495 strokes, which are the ends of the $1 \times 1$ to $5 \times 5$ levels
+(`report/figures/timelapse_strip.png`, made with `scripts/make_timelapse.py --strip 0 9 45 126 270 495`).
+
+### 4.6.2 Where it is offered
+
+* **The web page** (Section 4.5) writes the MP4 and the GIF into the painting's folder as soon as the painting is shown, plays the
+  MP4 in its time-lapse tab and offers both for download, next to the painting as a PNG or a JPG and the strokes (Figure 4.21).
+* **`run_paint.py --timelapse`** writes `timelapse.mp4` and `timelapse.gif` next to `final.png`.
+* **`scripts/make_timelapse.py`** makes them for any saved painting, a folder or a stroke file; the frame rate, the stride, the
+  hold and the size can be chosen, and `--strip` puts chosen frames side by side for a printed page (Figure 4.20). A stroke file of
+  the original code does not say which brush drew it, so the brush is then named on the command line. The stroke files written by
+  the package now also record the canvas colour, so that the time-lapse starts on the right one.
+
+**Figure 4.21.** The time-lapse tab of the page playing the MP4 of the watercolour painting of `apple`, with the five download
+buttons (`report/figures/app_en_timelapse.png`; Vietnamese: `app_vi_timelapse.png`).
+
+### 4.6.3 Cost and tests
+
+Table 4.37 gives the time and the size of the two files for the paintings of the pipeline of Section 4.4.3 (seed 0, 10 images per
+brush, 495 strokes, desktop CPU). Each file takes about 2 s, the rasterization plus the encoding, so the page has both about 4 s
+after the painting; no file reaches 0.7 MB, small enough to send by message. The watercolour's GIF is the largest, probably
+because its translucent strokes blend into more distinct colours than the other brushes' opaque ones.
+
+**Table 4.37.** Time and size of the time-lapse files (`experiments/2026-10-16_measure_timelapse_cost`, `scripts/timelapse_cost.py`;
+means of 10 paintings).
+
+| Brush | MP4 time (s) | MP4 size (MB) | GIF time (s) | GIF size (MB) |
+| :--- | ---: | ---: | ---: | ---: |
+| Oil | 2.01 | 0.41 | 2.25 | 0.49 |
+| Watercolour | 2.15 | 0.24 | 2.23 | 0.65 |
+| Marker pen | 2.22 | 0.23 | 2.33 | 0.27 |
+| Coloured tape | 1.67 | 0.22 | 1.77 | 0.25 |
+
+Four tests in `tests/test_video_recorder.py` read the files back. The MP4 is H.264 in `yuv420p` at the requested frame rate, has
+the expected number of frames (the blank canvas, every stride-th stroke, the last stroke and the hold), starts on the canvas
+colour and ends on the painting. The GIF has the expected frames and frame durations, with the hold added to the last. Frames
+take the requested shape, odd sides are rounded to even ones in the MP4, and other file types and a zero stride are refused.
+Stroke files read back with their brush and metadata, in the package's layout and in the original's. Further tests run
+`run_paint.py --timelapse` and `scripts/make_timelapse.py` on a 2:1 photograph and the web page's painting function through to its
+time-lapse, and the browser check of Section 4.5.3 waits until Chrome is playing the MP4, in both languages.

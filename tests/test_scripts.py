@@ -153,7 +153,8 @@ def test_run_paint_writes_a_painting_in_the_photo_aspect_ratio(tmp_path, capsys)
     save_image(photo, np.random.default_rng(0).random((60, 120, 3)).astype(np.float32))  # 2:1
     run_paint = load_script("run_paint")
     out = tmp_path / "out"
-    assert run_paint.main([str(photo), "--strokes", "14", "--max-divide", "3", "--size", "96", "--device", "cpu", "--out", str(out), "--quiet"]) == 0
+    assert run_paint.main([str(photo), "--strokes", "14", "--max-divide", "3", "--size", "96", "--device", "cpu", "--out", str(out), "--quiet",
+                           "--timelapse"]) == 0
     assert load_image(out / "final.png").shape == (48, 96, 3)  # stretched back to the photo's 2:1
     assert load_image(out / "input.png").shape == (96, 96, 3)
     rows = list(csv.DictReader(open(out / "results.csv", encoding="utf-8")))
@@ -161,6 +162,13 @@ def test_run_paint_writes_a_painting_in_the_photo_aspect_ratio(tmp_path, capsys)
     assert "levels" in (out / "config.yaml").read_text(encoding="utf-8") and "14 strokes" in capsys.readouterr().out
     with pytest.raises(SystemExit, match="not empty"):
         run_paint.main([str(photo), "--out", str(out)])
+    from PIL import Image
+
+    assert Image.open(out / "timelapse.gif").size == (96, 48) and (out / "timelapse.mp4").stat().st_size > 0  # Week 9
+    load_script("make_timelapse").main([str(out), "--out", str(tmp_path / "again"), "--format", "gif", "--stride", "7", "--hold", "0"])
+    again = Image.open(tmp_path / "again" / "timelapse.gif")
+    assert again.size == (96, 48) and again.n_frames == 3  # blank, after 7 and 14 strokes, on the canvas the file records
+    assert "3 frames" in capsys.readouterr().out
 
 
 def test_benchmark_builds_one_runner_call_per_brush():
@@ -184,3 +192,21 @@ def test_closed_form_composite_equals_the_loop():
     g = torch.Generator().manual_seed(0)
     canvas, fg, alpha = torch.rand(2, 3, 8, 8, generator=g), torch.rand(2, 5, 3, 8, 8, generator=g), torch.rand(2, 5, 3, 8, 8, generator=g)
     torch.testing.assert_close(profile.closed_form(canvas, fg, alpha), composite_sequence(canvas, fg, alpha))
+
+
+def test_usability_summary_scores_sus_and_ranks_issues(tmp_path):
+    summary = load_script("usability_summary")
+    assert summary.sus_score([3] * 10) == 50.0
+    assert summary.sus_score([5, 1] * 5) == 100.0 and summary.sus_score([1, 5] * 5) == 0.0
+    with pytest.raises(ValueError):
+        summary.sus_score([3] * 9)
+    (tmp_path / "tasks.csv").write_text("participant,task,outcome,seconds,notes\nP1,T1,done,80,\nP2,T1,help,120,needed a hint\n"
+                                        "P1,T2,done,30,\nP2,T2,failed,,\n", encoding="utf-8")
+    (tmp_path / "sus.csv").write_text("participant,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10\nP1,5,1,5,1,5,1,5,1,5,1\nP2,3,3,3,3,3,3,3,3,3,3\n",
+                                      encoding="utf-8-sig")
+    (tmp_path / "issues.csv").write_text("participant,issue,severity\nP1,Stop button unclear,1\nP2,Stop button unclear,2\n"
+                                         "P2,Did not find the replay,3\n", encoding="utf-8")
+    text = summary.summarize(tmp_path)
+    assert "| T1 | 2 | 1 | 1 | 0 | 100 |" in text and "| T2 | 2 | 1 | 0 | 1 | 30 |" in text
+    assert "Mean 75.0" in text and "| P2 | 50.0 |" in text
+    assert text.index("Stop button unclear") < text.index("Did not find the replay")  # 2 participants x 2 before 1 x 3

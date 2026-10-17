@@ -44,6 +44,11 @@ from .painter_engine import RESIZES, PainterConfig, PainterEngine, PaintResult
 
 ALLOCATION_CAP = 2.0  # allocation "error": a block gets at most this many times the level's mean strokes per block
 
+# The pipeline's settings, tuned in Week 7 (report Section 4.4.3), shared by run_paint.py and the web interface.
+# PainterConfig keeps the reference's defaults so that older experiments stay reproducible from their records.
+PIPELINE_SETTINGS = {"lr": 0.004, "lr_schedule": "cosine"}
+FAST_SETTINGS = {"allocation": "error", "iters_per_stroke": 11}  # the same PSNR in less than half the time (oil, Table 4.28)
+
 
 def allocate(weights: np.ndarray, budget: int, cap: int) -> np.ndarray:
     """Split ``budget`` strokes among blocks in proportion to ``weights`` (D'Hondt's method), at most ``cap`` per block.
@@ -123,12 +128,14 @@ def paint_image(
     device: str | torch.device | None = None,
     engine: PainterEngine | None = None,
     callback: Callable[[Progress], None] | None = None,
+    on_stroke: Callable[[int, np.ndarray], None] | None = None,
 ) -> Painting:
     """Paint ``image`` ((H, W, 3) float RGB in [0, 1], stretched to a square like the original) with about ``strokes`` strokes.
 
     ``mode`` and ``max_divide`` choose the grids (``core.grid.grid_levels``); ``config.allocation`` how the strokes are shared
     (``config.strokes_per_block`` is not used: the budget is ``strokes``). Returns the painting rasterized at ``canvas_size``
-    pixels, its strokes in drawing order and every level's optimization history.
+    pixels, its strokes in drawing order and every level's optimization history. ``on_stroke(i, canvas)`` is called after the
+    ``i``-th stroke (counted over all levels) is drawn on the ``canvas_size`` painting, for a replay or a time-lapse.
     """
     engine = engine or PainterEngine(renderer, config, device)
     cfg, spec, dev, size = engine.config, engine.spec, engine.device, renderer.out_size
@@ -167,7 +174,8 @@ def paint_image(
         order = engine.rng.permutation(m * m)
         new = flatten_blocks(block_to_global(result.params, spec, m), order, result.active)
         t0 = time.perf_counter()
-        raster.render_sequence(new, reset=False)
+        offset = done  # strokes of the earlier levels
+        raster.render_sequence(new, reset=False, on_stroke=(lambda i, canvas: on_stroke(offset + i, canvas)) if on_stroke else None)
         render_seconds += time.perf_counter() - t0
         levels.append(Level(m=m, counts=counts, result=result, strokes=new))
         done += len(new)

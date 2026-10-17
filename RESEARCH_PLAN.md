@@ -279,6 +279,7 @@ Each week has four parts: **Build**, **Measure**, **Write**, and **Exit criteria
 - `export/video_recorder.py`: MP4 and GIF time-lapse from the blank canvas, with selectable frame stride and resolution.
 - Download buttons in the UI for PNG/JPG, MP4, and GIF.
 - Stretch, only if Weeks 4 to 8 are on schedule: `export/svg_exporter.py` for Bézier strokes; `losses/style_loss.py` and a style-transfer mode on stroke parameters (color only, color + texture).
+- Optional (added 2026-10-16), only if time is left after the required Week 9 items: a web page of our own calling the app's Gradio API, and a hosted server so the app is reachable without localhost. Options and costs in `ROADMAP.md`, "Optional: own web page and a hosted server".
 
 **Measure**
 - Full evaluation on the frozen set: our system versus the original implementation (pretrained renderer, original code) at equal stroke budgets: PSNR, SSIM, LPIPS, time.

@@ -9,7 +9,8 @@ with ``pipeline.progressive_painter.paint_image`` (by default coarse to fine, wi
 0.004 that Week 7 adopted) while one line shows the level, strokes done, loss, PSNR of the neural canvas
 and elapsed time, and rasterized at ``--size`` pixels. A new folder (default ``output/<date>_paint_<photo>_<brush>``, git-ignored)
 receives ``final.png``, ``input.png`` (the fitted photo the painting is scored against), ``strokes.npz``, ``config.yaml`` (every
-setting, the device and the commit) and ``results.csv`` (one row: PSNR, SSIM, times, strokes, steps, peak memory).
+setting, the device and the commit) and ``results.csv`` (one row: PSNR, SSIM, times, strokes, steps, peak memory); ``--timelapse``
+adds ``timelapse.mp4`` and ``timelapse.gif`` (Week 9, ``export.video_recorder.write_timelapses``).
 """
 from __future__ import annotations
 
@@ -30,9 +31,10 @@ from neural_painter.core.device import PeakMemory, device_summary, disable_power
 from neural_painter.core.grid import GRID_MODES  # noqa: E402
 from neural_painter.core.image_io import ImageTooLargeError, UnsupportedImageError, preprocess, resize, save_image  # noqa: E402
 from neural_painter.core.stroke_models import canonical_brush_name, get_brush  # noqa: E402
+from neural_painter.export.video_recorder import write_timelapses  # noqa: E402
 from neural_painter.pipeline import metrics  # noqa: E402
 from neural_painter.pipeline.painter_engine import ALLOCATIONS, LR_SCHEDULES, PRECISIONS, PainterConfig, config_dict, save_strokes_npz  # noqa: E402
-from neural_painter.pipeline.progressive_painter import Progress, paint_image  # noqa: E402
+from neural_painter.pipeline.progressive_painter import FAST_SETTINGS, PIPELINE_SETTINGS, Progress, paint_image  # noqa: E402
 from neural_painter.pipeline.train_renderer import commit_info, new_experiment_dir  # noqa: E402
 from run_ablation import load_renderer_for  # noqa: E402
 
@@ -49,8 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--canvas", default=None, help="black | white | #rrggbb (default: the brush's)")
     p.add_argument("--renderer", default="original-light", help="original-light, original-full or a checkpoint written by train_renderer")
     # the pipeline's defaults, tuned in Week 7 (report Section 4.4.3); PainterConfig keeps the reference's (constant 0.002)
-    p.add_argument("--lr", type=float, default=0.004, help="peak learning rate")
-    p.add_argument("--lr-schedule", default="cosine", choices=LR_SCHEDULES)
+    p.add_argument("--lr", type=float, default=PIPELINE_SETTINGS["lr"], help="peak learning rate")
+    p.add_argument("--lr-schedule", default=PIPELINE_SETTINGS["lr_schedule"], choices=LR_SCHEDULES)
+    p.add_argument("--fast", action="store_true", help="allocation by error with 11 steps per stroke: under half the time, about the same PSNR")
     p.add_argument("--allocation", default="equal", choices=ALLOCATIONS, help="'error' gives busy blocks more strokes (slower)")
     p.add_argument("--precision", default="float32", choices=PRECISIONS, help="bfloat16: about 13 %% faster on cuda, slightly different paintings")
     p.add_argument("--device", default="auto")
@@ -59,6 +62,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fit", default="stretch", choices=["stretch", "crop", "pad"])
     p.add_argument("--deterministic", action="store_true", help="bit-exact repeats on cuda")
     p.add_argument("--out", type=Path, default=None, help="output folder (must not exist or be empty)")
+    p.add_argument("--timelapse", action="store_true", help="also write timelapse.mp4 and timelapse.gif (a few seconds more)")
     p.add_argument("--quiet", action="store_true")
     return p
 
@@ -102,7 +106,8 @@ def main(argv: list[str] | None = None) -> int:
 
     device = get_device(args.device)
     renderer, renderer_name = load_renderer_for(args.renderer, brush, device)
-    cfg = PainterConfig(seed=args.seed, lr=args.lr, lr_schedule=args.lr_schedule, allocation=args.allocation, precision=args.precision)
+    cfg = PainterConfig(seed=args.seed, lr=args.lr, lr_schedule=args.lr_schedule, precision=args.precision,
+                        **{"allocation": args.allocation, **(FAST_SETTINGS if args.fast else {})})
     started = time.perf_counter()
     with PeakMemory(device) as memory:
         paint = paint_image(photo.image, renderer, cfg, mode=args.grid, max_divide=args.max_divide, strokes=args.strokes,
@@ -114,11 +119,14 @@ def main(argv: list[str] | None = None) -> int:
     width, height = photo.output_size(args.size, keep_aspect_ratio=args.fit == "stretch")
     save_image(out / "final.png", resize(paint.image, (width, height)) if (width, height) != (args.size, args.size) else paint.image)
     save_image(out / "input.png", photo.image)
-    save_strokes_npz(out / "strokes.npz", paint.strokes, spec, seed=args.seed)
+    canvas = args.canvas or spec.default_canvas_color
+    save_strokes_npz(out / "strokes.npz", paint.strokes, spec, seed=args.seed, canvas=canvas)
+    if args.timelapse:
+        write_timelapses(out, paint.strokes, spec, canvas, shape=(width, height), size=args.size)
     info = {"created": datetime.now().isoformat(timespec="seconds"), **commit_info(), **device_summary(device), "image": str(source),
             "original_size": list(photo.original_size), "fit": args.fit, "size": args.size, "output_size": [width, height], "brush": brush,
             "renderer": renderer_name, "grid": args.grid, "max_divide": args.max_divide, "strokes_requested": args.strokes,
-            "canvas": args.canvas or spec.default_canvas_color, "cudnn_deterministic": bool(args.deterministic), "painter": config_dict(cfg),
+            "canvas": canvas, "cudnn_deterministic": bool(args.deterministic), "painter": config_dict(cfg),
             "levels": [{"m": lv.m, "strokes": int(lv.counts.sum()), "steps": len(lv.result.loss)} for lv in paint.levels]}
     (out / "config.yaml").write_text(yaml.safe_dump(info, sort_keys=False), encoding="utf-8")
     row = {"image": source.stem, "brush": brush, "grid": args.grid, "strokes": len(paint.strokes), "steps": paint.steps, "psnr": m["psnr"],

@@ -1,0 +1,25 @@
+created: '2026-10-16T00:58:30'
+commit: 56f8e91
+dirty: true
+device: cpu
+torch: 2.11.0+cu128
+python: 3.11.9
+platform: Windows-10-10.0.26200-SP0
+machine: AMD64
+processor: Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
+cpu_threads: 10
+sources:
+- Oil=experiments/2026-10-15_ablation_brushes_prog_oilpaintbrush#prog_cos4
+- Watercolour=experiments/2026-10-15_ablation_brushes_prog_watercolor#prog_cos4
+- Marker=experiments/2026-10-15_ablation_brushes_prog_markerpen#prog_cos4
+- Tape=experiments/2026-10-15_ablation_brushes_prog_rectangle#prog_cos4
+seed: 0
+size: 512
+mp4:
+  fps: 40.0
+  frames: 500
+  hold: 1.5
+gif:
+  fps: 20.0
+  frames: 100
+  hold: 1.5

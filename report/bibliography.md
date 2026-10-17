@@ -177,6 +177,24 @@ Used in: Method, Experiments.
 
 ---
 
+## 7. Usability evaluation
+
+### [Brooke 1996] (SUS)
+Brooke, J. (1996). SUS: A "quick and dirty" usability scale. In P. W. Jordan, B. Thomas, B. A. Weerdmeester, I. L. McClelland (eds.), *Usability Evaluation in Industry*, pp. 189–194. London: Taylor & Francis.
+
+Annotation: Defines the System Usability Scale, ten statements answered on a five-point scale whose odd items are worded positively and even items negatively, and the scoring that maps the answers to 0 to 100. The usability test of the web app (Week 8) uses it, in a Vietnamese translation, as its questionnaire.
+
+Used in: Experiments.
+
+### [Sauro 2011]
+Sauro, J. (2011). *A Practical Guide to the System Usability Scale: Background, Benchmarks & Best Practices*. Denver: Measuring Usability LLC. [verify]
+
+Annotation: Collects SUS scores of several hundred studies and gives the benchmark used to read a score: about 68 is average, scores above about 80 are in the top fifth. Cited to interpret the SUS score of the web app.
+
+Used in: Experiments.
+
+---
+
 ## Summary
 
 | Group | Entries |
@@ -187,6 +205,7 @@ Used in: Method, Experiments.
 | Optimal transport | 2 |
 | Style transfer and perceptual metrics | 3 |
 | Optimization | 1 |
-| **Total** | **21** |
+| Usability evaluation | 2 |
+| **Total** | **23** |
 
-Required entries: 15. Added: Hertzmann 2003, Xie et al. 2013, Zheng et al. 2019, Schaldenbrand and Oh 2021, Kotovenko et al. 2021, Loshchilov and Hutter 2017 (Week 7).
+Required entries: 15. Added: Hertzmann 2003, Xie et al. 2013, Zheng et al. 2019, Schaldenbrand and Oh 2021, Kotovenko et al. 2021, Loshchilov and Hutter 2017 (Week 7), Brooke 1996 and Sauro 2011 (Week 8).

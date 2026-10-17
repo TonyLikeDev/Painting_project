@@ -85,7 +85,19 @@ venv/                      local virtual environment (git-ignored)
   watercolour start opacity [0.5, 0.7], marker start length (`chord`) 0.4. Runs made before (all of Week 5) used the
   reference starts; `init_size_range=0.1:0.25` (and `init_chord=0`, `init_alpha_range=0.98:1.0`) reproduce them, and
   `run_ablation.py` now records the start ranges in each folder and refuses to resume a folder painted under other ones.
-- Week 7 pipeline defaults live in `scripts/run_paint.py` (progressive mode, `lr_schedule=cosine`, `lr=0.004`, 500 strokes);
+- The web app (Week 8, `app/gradio_app.py`): Gradio 6.27's own translations only activate the languages it ships (no Vietnamese),
+  so labels come from the module's `TEXT` table and a language switch; the Paint event uses `preprocess=False` so that
+  `image_io` (not Pillow inside Gradio) refuses bad uploads. A headless-Chrome test needs no extra package
+  (`scripts/app_screenshots.py` speaks the DevTools protocol itself); click Gradio tabs via `button[role=tab]` (a hidden duplicate
+  row of tab buttons exists). The Claude-in-Chrome extension was not connected on the desktop. In a generator event, send an image as
+  `gr.update(value=...)` when a later yield skips it: a raw value followed by `gr.skip()` arrives blank in a tab not opened yet.
+- Time-lapses (Week 9, `export/video_recorder.py`) are drawn again from the strokes, never recorded during the painting: MP4 through
+  `imageio-ffmpeg`'s bundled ffmpeg (libx264, `yuv420p`, plays in browsers; the original's `MP4V` does not), GIF through Pillow on one
+  palette without dithering (no flicker). Stroke files written since Week 9 record `canvas`; `load_strokes_npz` reads both layouts
+  (an original file needs the brush named). About 2 s per file for 500 strokes.
+- Long inline Python in a Bash heredoc fails here in two ways: the tool chokes on long heredocs, and backslashes are unescaped once
+  (`'\\n'` in a JS string inside Python arrives wrong). Write the script to the scratchpad with the Write tool, or use Edit.
+- Pipeline defaults (Week 7) live in `progressive_painter.PIPELINE_SETTINGS` (progressive mode, `lr_schedule=cosine`, `lr=0.004`; fast: `FAST_SETTINGS`), used by `run_paint.py` and the app, 500 strokes;
   `PainterConfig` keeps the reference's defaults (constant 0.002, equal allocation, float32) so older experiments stay
   reproducible. In `run_ablation.py` configs write them out: `prog=0,mode=progressive,lr_schedule=cosine,lr=0.004`.
 
@@ -158,6 +170,12 @@ venv/Scripts/python.exe scripts/run_ablation.py --name b --configs fixed=0 prog=
 venv/Scripts/python.exe scripts/plot_scaling.py "Oil=experiments/<folder>" ... [--time-from "Oil=experiments/<clean timing folder>"]   # quality and time against strokes
 venv/Scripts/python.exe scripts/profile_step.py            # where a painting step's time goes; mixed precision; CPU steps with and without throttling (run alone)
 venv/Scripts/python.exe scripts/check_end_to_end.py        # run_paint on the reference's test photos and generated edge cases (formats, aspect ratios, refusals)
+venv/Scripts/python.exe -m neural_painter.app.gradio_app   # the web app (Week 8); Start_App.bat / start_app.command do the same with a double-click
+venv/Scripts/python.exe scripts/app_screenshots.py         # the real page in headless Chrome, both languages: end-to-end check + report screenshots
+venv/Scripts/python.exe scripts/usability_summary.py experiments/<date>_usability   # task completion, SUS, ranked issues from the test sheets
+venv/Scripts/python.exe scripts/run_paint.py photo.jpg --timelapse                  # also timelapse.mp4 (H.264) and timelapse.gif (Week 9)
+venv/Scripts/python.exe scripts/make_timelapse.py output/<folder> [--strip 6]        # time-lapse of any saved painting (strokes.npz; original npz: --brush)
+venv/Scripts/python.exe scripts/timelapse_cost.py "Oil=experiments/<folder>#prog_cos4" ...   # seconds and MB of the time-lapses per brush (run alone)
 venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available())"
 cd stylized-neural-painting && ../venv/Scripts/python.exe demo_prog.py --img_path ./test_images/apple.jpg \
   --canvas_color white --max_m_strokes 500 --max_divide 5 --renderer oilpaintbrush \
