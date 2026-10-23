@@ -26,6 +26,7 @@ participant sheet in Vietnamese is `usability_test_phieu_vi.md`; the results go 
 3. For each task note: the outcome (`done`, `help`, `failed`), the time in seconds, and every problem you see or hear (hesitations,
    wrong clicks, misunderstandings, comments).
 4. After the tasks, the participant fills in the 10 questions of the System Usability Scale and answers the three open questions.
+5. If the participant agrees, they then rate the 20 paintings of the aesthetic survey (about 5 minutes; `aesthetic_survey.md`).
 
 ## Tasks
 

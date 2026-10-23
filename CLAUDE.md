@@ -176,6 +176,9 @@ venv/Scripts/python.exe scripts/usability_summary.py experiments/<date>_usabilit
 venv/Scripts/python.exe scripts/run_paint.py photo.jpg --timelapse                  # also timelapse.mp4 (H.264) and timelapse.gif (Week 9)
 venv/Scripts/python.exe scripts/make_timelapse.py output/<folder> [--strip 6]        # time-lapse of any saved painting (strokes.npz; original npz: --brush)
 venv/Scripts/python.exe scripts/timelapse_cost.py "Oil=experiments/<folder>#prog_cos4" ...   # seconds and MB of the time-lapses per brush (run alone)
+venv/Scripts/python.exe scripts/compare_with_original.py --name full_eval_markerpen --brush marker --mode progressive --every 1 --repeats 1 --configs original pipeline   # Week 9: any brush, our shipped settings
+venv/Scripts/python.exe scripts/make_survey.py             # aesthetic survey material (paintings PDF, answer sheet, key) in report/notes/aesthetic_survey
+venv/Scripts/python.exe scripts/survey_summary.py experiments/<date>_aesthetic_survey/ratings.csv   # scores per brush, tests, correlation with PSNR / LPIPS
 venv/Scripts/python.exe -c "import torch; print(torch.cuda.is_available())"
 cd stylized-neural-painting && ../venv/Scripts/python.exe demo_prog.py --img_path ./test_images/apple.jpg \
   --canvas_color white --max_m_strokes 500 --max_divide 5 --renderer oilpaintbrush \

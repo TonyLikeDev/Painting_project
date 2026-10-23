@@ -21,10 +21,17 @@ Status mirror of `ROADMAP.md`. Started on the desktop on 2026-10-16, ahead of th
 | The page in Chrome, both languages | `scripts/app_screenshots.py` | every step passes; the MP4 plays in the time-lapse tab; the five download buttons are enabled; the Painting tab shows the painting (fixed 16 Oct: it was empty, see ROADMAP Week 9 notes) |
 | Free 2-CPU hosting estimate (optional plan) | 2026-10-15, 2 threads of the i5-13400F | oil, 500 strokes: 260 s best, 110 s fast |
 
+## Aesthetic survey
+
+- [x] Material: `scripts/make_survey.py` -> `report/notes/aesthetic_survey/` (20 paintings, `paintings.pdf`, `answer_sheet_vi.pdf`,
+  `key.csv`); protocol `report/notes/aesthetic_survey.md`; `scripts/survey_summary.py`; `tests/test_survey.py`.
+- [ ] Ratings (student, at least 10 raters, from 21 Oct), then `survey_summary.py` and report section 6.6.
+
 ## Write
 
 - [x] Report section 4.6 (Figures 4.20, 4.21, Table 4.37); section 4.5 updated; screenshots retaken.
-- [ ] Experiments section complete; Limitations draft.
+- [~] Experiments chapter drafted (`report/chapters/06_results.md`, pending tables marked); Limitations draft
+  (`report/chapters/07_limitations.md`).
 
 ## Open
 

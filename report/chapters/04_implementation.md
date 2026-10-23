@@ -677,7 +677,7 @@ regularization or at three others, or from either of two starts, and every diffe
 0.1 dB or negative. LPIPS agrees wherever it can resolve a difference: it finds no effect of the term from 0.1 to 10,
 a small and not significant rise at 100, a rise with $\varepsilon$ that parallels the fall in PSNR, and it does not
 confirm the small PSNR gain at $\varepsilon = 0.003$ ($+0.004$). At the reference weight the term is practically switched off, since its gradient is about
-0.3 % of the pixel loss's. It also costs time: the optimization loop took 2.3 to 2.6 times as long with the
+0.03 to 0.09 % of the pixel loss's (Table 4.9). It also costs time: the optimization loop took 2.3 to 2.6 times as long with the
 term (6.2 against 16.0 s per painting in Ablation A, and 6.8 against 15.8 s in a later run of three images
 on the same machine). Full-image mode took about 5 to 11 times as long as the grid (36 to 74 s against 6.5 s for
 one painting of the same image, depending on the state of the machine: its loop launches up to 500 small

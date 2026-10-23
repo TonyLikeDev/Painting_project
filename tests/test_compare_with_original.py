@@ -71,3 +71,27 @@ def test_progressive_mode_runs_demo_prog_seeded_and_ours_with_its_optimizer(tmp_
     assert set(rows) == {"original", "ours", "ours_linear"} and all(r["strokes"] == "10" and r["mode"] == "progressive" for r in rows.values())
     assert rows["original"]["renderer"] == "original demo_prog.py"
     assert "centered: true" in (folder / "config.yaml").read_text(encoding="utf-8")
+
+
+@pytest.mark.skipif(not (ORIGINAL / "demo_prog.py").is_file(), reason="the original 2021 checkout is not present")
+def test_other_brushes_run_on_their_canvas_with_the_pipeline_settings(tmp_path, monkeypatch):
+    """Week 9: ``--brush`` (the authors' renderer and the brush's canvas on both sides) and ``--configs`` with ``pipeline``."""
+    if not original_checkpoint_path("rectangle", light=True).is_file():
+        pytest.skip("the pretrained light tape renderer has not been downloaded")
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
+    compare = load_script("compare_with_original")
+    monkeypatch.setattr(compare, "EXPERIMENT_ROOT", tmp_path)
+    command = compare.original_command(ROOT / "x.png", tmp_path, 5, 500, "progressive", 0, "rectangle", "black")
+    assert command[command.index("--renderer") + 1] == "rectangle" and command[command.index("--canvas_color") + 1] == "black"
+    assert command[command.index("--renderer_checkpoint_dir") + 1] == "checkpoints_G_rectangle_light"
+    args = ["--images", "apple", "--every", "1", "--repeats", "1", "--grid", "2", "--strokes", "10", "--device", "cpu", "--mode", "progressive"]
+    assert compare.main(args + ["--brush", "tape", "--configs", "original", "pipeline", "--name", "tape"]) == 0
+    folder = next(tmp_path.glob("*_check_tape"))
+    rows = {r["config"]: r for r in csv.DictReader(open(folder / "results.csv", encoding="utf-8"))}
+    assert set(rows) == {"original", "pipeline"} and "light rectangle renderer, black canvas" in (folder / "config.yaml").read_text(encoding="utf-8")
+    assert "lr_schedule: cosine" in (folder / "config.yaml").read_text(encoding="utf-8")
+    from neural_painter.core.image_io import load_image
+
+    assert load_image(folder / "runs" / "apple" / "pipeline_s0" / "final.png").min() == 0.0  # black canvas left between the strokes
+    with pytest.raises(SystemExit, match="rectangle paintings"):
+        compare.main(args + ["--brush", "oil", "--dir", str(folder)])

@@ -58,6 +58,11 @@ def load(folder: Path, config: str | None) -> tuple[str, list[dict]]:
     return config, [r for r in rows if r["config"] == config]
 
 
+def painting(run: Path, image: str) -> Path:
+    """``final.png`` (this package) or ``<image>_final.png`` (the original 2021 demo, in ``compare_with_original.py``'s folders)."""
+    return run / "final.png" if (run / "final.png").is_file() else run / f"{image}_final.png"
+
+
 def mean_std(rows: list[dict], config: str, key: str) -> tuple[float, float] | None:
     v = per_seed_means(rows, config, key)
     if v.size == 0:
@@ -93,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     data = [(label, folder, config, [r for r in rows if (r["image"], int(r["seed"])) in common]) for label, folder, config, rows in data]
     if args.seed not in seeds:
         raise SystemExit(f"--seed {args.seed} is not among the common seeds {seeds}")
-    paintings = {(label, image): folder / "runs" / image / f"{config}_s{args.seed}" / "final.png" for label, folder, config, _ in data for image in images}
+    paintings = {(label, image): painting(folder / "runs" / image / f"{config}_s{args.seed}", image) for label, folder, config, _ in data for image in images}
     absent = [str(p) for p in paintings.values() if not p.is_file()]
     if absent:  # checked before the experiment folder is made, so a failed figure leaves nothing that looks finished
         raise SystemExit(f"paintings not found (the runs/ folders are not committed): {absent[:3]}")
