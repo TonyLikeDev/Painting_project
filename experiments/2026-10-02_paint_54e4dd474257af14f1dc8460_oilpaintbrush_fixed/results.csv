@@ -1,0 +1,2 @@
+image,brush,grid,m_grid,strokes,seed,device,canvas,seconds,block_psnr_db,final_psnr_db,final_ssim,commit,date
+54e4dd474257af14f1dc8460962e33791c3ad6e04e50744071297ad7954fc3_640.png,oilpaintbrush,fixed,5,500,0,mps,white,57.7,17.411,13.529,0.1403,5d2bf08,2026-10-02

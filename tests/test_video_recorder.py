@@ -38,7 +38,7 @@ def test_mp4_runs_from_the_blank_canvas_to_the_painting_in_h264(tmp_path):
     frames, meta = mp4_frames(tmp_path / "t.mp4")
     assert meta["codec"].startswith("h264") and meta["pix_fmt"].startswith("yuv420p") and meta["fps"] == 10
     assert len(frames) == n + 5  # half a second of the finished painting at 10 frames a second
-    assert np.abs(frames[0] - 255).mean() < 2  # the white canvas
+    assert np.abs(frames[0] - 255).mean() < 4  # the white canvas (the macOS ffmpeg build decodes it as 253)
     assert np.abs(frames[-1] - painted("watercolor", strokes, "white")).mean() < 4  # H.264 is lossy
 
 

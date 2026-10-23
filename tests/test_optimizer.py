@@ -120,9 +120,10 @@ def test_a_cuda_painting_repeats_exactly_when_cudnn_is_deterministic(monkeypatch
 
 
 def test_the_resize_option_changes_the_target_the_strokes_are_fitted_to():
-    image = np.random.default_rng(0).random((64, 64, 3), dtype=np.float32)  # white noise: averaging and bilinear sampling disagree strongly
+    # white noise: averaging and bilinear sampling disagree strongly; 64 -> 24 is not a factor of two, where they would agree exactly
+    image = np.random.default_rng(0).random((64, 64, 3), dtype=np.float32)
     cfg = dict(strokes_per_block=2, iters_per_stroke=3, seed=0)
-    area, linear = (paint_fixed_grid(image, ToyRenderer(), PainterConfig(resize=r, **cfg), grid=2, canvas_size=64, device="cpu") for r in ("area", "linear"))
+    area, linear = (paint_fixed_grid(image, ToyRenderer(12), PainterConfig(resize=r, **cfg), grid=2, canvas_size=64, device="cpu") for r in ("area", "linear"))
     assert area.strokes.shape == linear.strokes.shape and not np.array_equal(area.strokes, linear.strokes)
     assert PainterConfig().resize == "area"  # the default is unchanged
     with pytest.raises(ValueError, match="resize"):
