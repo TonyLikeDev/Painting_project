@@ -185,11 +185,21 @@ figure.fig { margin: 36px 0; }
 .avg-in { display: grid; grid-template-columns: repeat(2, auto); gap: 10px; }
 .grp, .avg-out { display: grid; grid-template-columns: repeat(2, auto); gap: 3px; border-radius: 10px; padding: 4px; border: 2px solid transparent; transition: border-color .2s; }
 .grp.hl, .avg-out div.hl { border-color: var(--accent); }
-.grp div, .avg-out div { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 6px; font: 600 .92rem/1 "JetBrains Mono", ui-monospace, monospace; }
+.grp div, .avg-in .cell, .avg-out div { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 6px; font: 600 .92rem/1 "JetBrains Mono", ui-monospace, monospace; }
 .avg-out { gap: 10px; border: 0; padding: 0; }
 .avg-out div { width: 106px; height: 106px; font-size: 1.35rem; border: 2px solid transparent; border-radius: 10px; }
+.avg.t2 .grp div, .avg.t3 .cell { width: 42px; height: 42px; font-size: .8rem; }
+.avg.t2 .avg-out div { width: 144px; height: 144px; }
+.avg.t3 .avg-in { gap: 3px; position: relative; }
+.avg.t3 .avg-out { gap: 3px; }
+.avg.t3 .avg-out div { width: 64px; height: 64px; font-size: .95rem; border-radius: 6px; }
+.foot { position: absolute; border: 3px solid var(--accent); border-radius: 4px; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) { .foot { transition: left .2s, top .2s; } }
 .avg-arrow { font-size: 1.6rem; color: var(--accent); }
 .avg-sums { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 4px 20px; margin-top: 16px; font: .84rem/1.6 "JetBrains Mono", ui-monospace, monospace; color: var(--ink-2); }
+.avg-sums.one { grid-template-columns: minmax(0, 1fr); }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 480px) { .avg-seg button { padding: 6px 9px; font-size: .8rem; } }
 
 /* step 4: grid ladder */
 .ladder { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 28px 0 8px; }
@@ -439,15 +449,20 @@ footer p { margin: 0 0 .6rem; }
           kênh R, G, B. Đến bước này ảnh <b>đã được chuẩn hoá</b>, nên mọi số đều nằm trong [0, 1].</p>
       </div>
       <div class="lab">
-        <p class="lab-title"><span>Thử ngay</span>Thu ảnh xám 4 × 4 về 2 × 2</p>
-        <p class="lab-hint">Mỗi nhóm 2 × 2 pixel gộp thành 1 pixel mới ở cùng vị trí. Rê chuột lên một nhóm để thấy nó đi đâu. Đổi sang trung vị để so.</p>
+        <p class="lab-title"><span>Thử ngay</span>Thu nhỏ một ảnh xám</p>
+        <p class="lab-hint" id="avg-hint"></p>
         <div class="controls">
-          <div class="seg" role="group" aria-label="Cách gộp">
+          <div class="seg avg-seg" role="group" aria-label="Ví dụ">
+            <button id="avg-t1" aria-pressed="true">4×4 → 2×2</button>
+            <button id="avg-t2" aria-pressed="false">6×6 → 2×2</button>
+            <button id="avg-t3" aria-pressed="false">6×6 → 4×4</button>
+          </div>
+          <div class="seg avg-seg" role="group" aria-label="Cách gộp">
             <button id="avg-mean" aria-pressed="true">Trung bình cộng (dự án dùng)</button>
             <button id="avg-median" aria-pressed="false">Trung vị</button>
           </div>
         </div>
-        <div class="avg">
+        <div class="avg" id="avg">
           <div class="avg-in" id="avg-in"></div>
           <div class="avg-arrow" aria-hidden="true">→</div>
           <div class="avg-out" id="avg-out"></div>
@@ -457,7 +472,8 @@ footer p { margin: 0 0 .6rem; }
       </div>
       <div class="prose">
         <p>Ảnh thật 3000 × 4000 làm y hệt, chỉ là mỗi nhóm to hơn: 3000/512 ≈ 5.86 hàng và 4000/512 ≈ 7.81 cột cũ gộp thành 1 pixel mới, tức mỗi
-          pixel mới là trung bình của khoảng <b>46 pixel cũ</b>. Pixel nằm ở mép, chỉ thuộc nhóm một phần, thì được tính theo đúng phần đó.</p>
+          pixel mới là trung bình của khoảng <b>46 pixel cũ</b>. Pixel nằm ở mép, chỉ thuộc nhóm một phần, thì được tính theo đúng phần đó
+          (xem ví dụ 6 × 6 → 4 × 4 ở trên).</p>
         <p>Muốn nghĩ theo thang 0..255 cũ thì nhân 255: các số trong ví dụ chính là 10, 20, 30, 40, 200, 220, 240, 100 chia 255. Chia 255 và
           lấy trung bình đều là phép tuyến tính, nên đổi thứ tự cũng ra gần như cùng kết quả, chỉ khác phần làm tròn rất nhỏ.</p>
       </div>
@@ -855,42 +871,106 @@ footer p { margin: 0 0 .6rem; }
 
   /* ---------- 3. averaging ---------- */
   (function () {
-    // already normalized (step 2), so values in [0, 1]: 10, 20, 30, 40, 200, 220, 240, 100 divided by 255
-    var A = [[0.04, 0.08, 0.78, 0.86], [0.12, 0.16, 0.94, 0.86], [0.39, 0.39, 0, 0], [0.39, 0.39, 0, 0.16]];
-    var inEl = $("avg-in"), outEl = $("avg-out"), sums = $("avg-sums"), note = $("avg-note"), groups = [], outs = [];
+    // already normalized (step 2), so values in [0, 1]; t1 is 10, 20, 30, 40, 200, 220, 240, 100 divided by 255.
+    // The outputs match cv2.resize(..., interpolation=cv2.INTER_AREA) on the same arrays to 1e-7.
+    var TABS = {
+      "avg-t1": { m: 2, A: [[0.04, 0.08, 0.78, 0.86], [0.12, 0.16, 0.94, 0.86], [0.39, 0.39, 0, 0], [0.39, 0.39, 0, 0.16]],
+        hint: "Mỗi nhóm 2 × 2 pixel gộp thành 1 pixel mới ở cùng vị trí. Rê chuột lên một nhóm để thấy nó đi đâu. Đổi sang trung vị để so.",
+        note: { mean: "Mỗi pixel mới là trung bình cộng của 4 pixel cũ trong nhóm. Các số đã chuẩn hoá ở bước 2 nên nằm trong 0 đến 1.",
+          median: "Ô dưới phải: trung vị là 0.00, bỏ qua hẳn pixel 0.16. Trung bình cộng là 0.04, giữ được một chút độ sáng của nó." } },
+      "avg-t2": { m: 2, A: [[0.82, 0.84, 0.86, 0.95, 0.97, 0.96], [0.80, 0.83, 0.85, 0.94, 0.10, 0.95], [0.78, 0.81, 0.84, 0.93, 0.94, 0.96],
+          [0.30, 0.28, 0.35, 0.40, 0.42, 0.70], [0.25, 0.22, 0.30, 0.38, 0.41, 0.72], [0.20, 0.18, 0.24, 0.39, 0.43, 0.71]],
+        hint: "Thu nhỏ 3 lần mỗi chiều: mỗi nhóm 3 × 3 = 9 pixel gộp thành 1 pixel mới. Ô trên phải có một chấm tối, ô dưới phải nửa tối nửa sáng. Đổi sang trung vị để so.",
+        note: { mean: "Mỗi pixel mới là trung bình cộng của 9 pixel cũ. Chấm tối 0.10 ở ô trên phải (như một con chim bay qua) kéo ô đó từ khoảng 0.95 xuống 0.86, nên ảnh nhỏ vẫn còn dấu vết của nó.",
+          median: "Ô trên phải: trung vị là 0.95, chấm tối 0.10 bị bỏ qua hẳn. Ô dưới phải: trung vị lấy 0.42 của phần tối, còn trung bình cộng 0.51 phản ánh cả hai phần." } },
+      "avg-t3": { m: 4, pick: 5, A: [[0.10, 0.10, 0.90, 0.20, 0.20, 0.20], [0.10, 0.10, 0.90, 0.20, 0.20, 0.20], [0.10, 0.10, 0.90, 0.20, 0.60, 0.60],
+          [0.10, 0.10, 0.90, 0.20, 0.60, 0.60], [0.30, 0.30, 0.90, 0.30, 0.60, 0.60], [0.30, 0.30, 0.90, 0.30, 0.60, 0.60]],
+        hint: "Thu nhỏ 1.5 lần, không chia hết: mỗi pixel mới phủ một khung 1.5 × 1.5 pixel cũ, nên có pixel cũ chỉ nằm một nửa hay một phần tư trong khung và chỉ được tính theo đúng phần đó. Rê chuột hoặc chạm vào một pixel mới để xem khung của nó.",
+        note: { mean: "Trọng số là phần diện tích nằm trong khung: 1 (cả pixel), 0.5 (một nửa), 0.25 (một phần tư); tổng là 2.25 = 1.5 × 1.5 nên chia cho 2.25. Đường sáng dọc 0.90 rộng 1 pixel chỉ còn 0.63 đến 0.70: chi tiết mảnh hơn 1 pixel mới thì bị mờ đi. Trung vị không dùng ở đây vì có pixel chỉ góp một phần." } }
+    };
+    var box = $("avg"), inEl = $("avg-in"), outEl = $("avg-out"), sums = $("avg-sums"), note = $("avg-note"), hint = $("avg-hint");
+    var tab, mode = "mean", sel, groups, outs, cells, foot;
     var fmt = function (v) { return v.toFixed(2); };
+    var fmtW = function (w) { return String(+w.toFixed(2)); };
+    var byValue = function (a, b) { return a - b; };
     function paint(d, v) { var g = Math.round(v * 255); d.style.background = "rgb(" + g + "," + g + "," + g + ")"; d.style.color = v > 0.5 ? "#18181b" : "#fafafa"; }
-    function values(k) { var gi = k >> 1, gj = k & 1; return [A[2 * gi][2 * gj], A[2 * gi][2 * gj + 1], A[2 * gi + 1][2 * gj], A[2 * gi + 1][2 * gj + 1]]; }
-    function hl(k, on) { groups[k].classList.toggle("hl", on); outs[k].classList.toggle("hl", on); }
-    for (var k = 0; k < 4; k++) {
-      var grp = document.createElement("div"); grp.className = "grp";
-      values(k).forEach(function (v) { var d = document.createElement("div"); d.textContent = fmt(v); paint(d, v); grp.appendChild(d); });
-      var o = document.createElement("div");
-      (function (k) {
-        [grp, o].forEach(function (el) {
-          el.addEventListener("pointerenter", function () { hl(k, true); });
-          el.addEventListener("pointerleave", function () { hl(k, false); });
-        });
-      })(k);
-      inEl.appendChild(grp); outEl.appendChild(o); groups.push(grp); outs.push(o);
+    // area weights: old pixel i covers [i, i + 1), new pixel u covers [u s, (u + 1) s) with s = n / m
+    function weights(n, m) {
+      var s = n / m, W = [];
+      for (var u = 0; u < m; u++) { W.push([]); for (var i = 0; i < n; i++) W[u].push(Math.max(0, Math.min(i + 1, (u + 1) * s) - Math.max(i, u * s))); }
+      return W;
     }
-    function render(mode) {
+    function terms(k) { // [weight, value] of every old pixel inside new pixel k, row by row
+      var u = Math.floor(k / tab.m), v = k % tab.m, out = [];
+      tab.A.forEach(function (row, i) { row.forEach(function (a, j) { var w = tab.W[u][i] * tab.W[v][j]; if (w > 0) out.push([w, a]); }); });
+      return out;
+    }
+    function value(k) {
+      var ts = terms(k);
+      if (mode === "mean") return ts.reduce(function (acc, x) { return acc + x[0] * x[1]; }, 0) / (tab.s * tab.s);
+      var s = ts.map(function (x) { return x[1]; }).sort(byValue), h = s.length >> 1;
+      return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+    }
+    function formula(k) {
+      var ts = terms(k), r = fmt(value(k));
+      if (mode === "median") return "trung vị của " + ts.map(function (x) { return x[1]; }).sort(byValue).map(fmt).join(", ") + " = " + r;
+      if (tab.whole) return "(" + ts.map(function (x) { return fmt(x[1]); }).join(" + ") + ") / " + ts.length + " = " + r;
+      return "(" + ts.map(function (x) { return fmtW(x[0]) + "×" + fmt(x[1]); }).join(" + ") + ") / " + fmtW(tab.s * tab.s) + " = " + r;
+    }
+    function cell(v) { var d = document.createElement("div"); d.textContent = fmt(v); paint(d, v); return d; }
+    function hl(k, on) {
+      if (tab.whole) { groups[k].classList.toggle("hl", on); outs[k].classList.toggle("hl", on); return; }
+      sel = k;
+      outs.forEach(function (o, i) { o.classList.toggle("hl", i === k); });
+      var c = cells[0], p = cells[1].offsetLeft - c.offsetLeft, u = Math.floor(k / tab.m), v = k % tab.m;
+      foot.style.left = c.offsetLeft + v * tab.s * p + "px";
+      foot.style.top = c.offsetTop + u * tab.s * p + "px";
+      foot.style.width = foot.style.height = tab.s * p - (p - c.offsetWidth) + "px";
+      sums.innerHTML = "<div>Pixel mới hàng " + u + ", cột " + v + ": " + formula(k) + "</div>";
+    }
+    function hook(k, el) {
+      el.addEventListener("pointerenter", function () { hl(k, true); });
+      el.addEventListener("pointerleave", function () { if (tab.whole) hl(k, false); });
+    }
+    function render() {
       var lines = [];
-      for (var k = 0; k < 4; k++) {
-        var v = values(k), s = v.slice().sort(function (a, b) { return a - b; });
-        var r = mode === "mean" ? (v[0] + v[1] + v[2] + v[3]) / 4 : (s[1] + s[2]) / 2;
-        outs[k].textContent = fmt(r); paint(outs[k], r);
-        lines.push("<div>" + (mode === "mean" ? "(" + v.map(fmt).join(" + ") + ") / 4 = " + fmt(r) : "trung vị của " + s.map(fmt).join(", ") + " = " + fmt(r)) + "</div>");
+      for (var k = 0; k < outs.length; k++) {
+        var r = value(k); outs[k].textContent = fmt(r); paint(outs[k], r);
+        lines.push("<div>" + formula(k) + "</div>");
       }
-      sums.innerHTML = lines.join("");
-      note.textContent = mode === "median"
-        ? "Ô dưới phải: trung vị là 0.00, bỏ qua hẳn pixel 0.16. Trung bình cộng là 0.04, giữ được một chút độ sáng của nó."
-        : "Mỗi pixel mới là trung bình cộng của 4 pixel cũ trong nhóm. Các số đã chuẩn hoá ở bước 2 nên nằm trong 0 đến 1.";
+      if (tab.whole) sums.innerHTML = lines.join(""); else hl(sel, true);
+      note.textContent = tab.note[mode];
       press(["avg-mean", "avg-median"], mode === "mean" ? "avg-mean" : "avg-median");
     }
-    $("avg-mean").onclick = function () { render("mean"); };
-    $("avg-median").onclick = function () { render("median"); };
-    render("mean");
+    function build(id) {
+      var n = (tab = TABS[id]).A.length, f = n / tab.m;
+      tab.s = f; tab.whole = f === Math.floor(f); tab.W = weights(n, tab.m);
+      box.className = "avg " + id.slice(4);
+      inEl.innerHTML = outEl.innerHTML = ""; groups = []; outs = []; cells = [];
+      inEl.style.gridTemplateColumns = "repeat(" + (tab.whole ? tab.m : n) + ", auto)";
+      outEl.style.gridTemplateColumns = "repeat(" + tab.m + ", auto)";
+      for (var k = 0; k < tab.m * tab.m; k++) {
+        var o = document.createElement("div"); outEl.appendChild(o); outs.push(o); hook(k, o);
+        if (!tab.whole) continue;
+        var g = document.createElement("div"); g.className = "grp"; g.style.gridTemplateColumns = "repeat(" + f + ", auto)";
+        terms(k).forEach(function (x) { g.appendChild(cell(x[1])); });
+        inEl.appendChild(g); groups.push(g); hook(k, g);
+      }
+      if (!tab.whole) {
+        tab.A.forEach(function (row) { row.forEach(function (a) { var d = cell(a); d.className = "cell"; inEl.appendChild(d); cells.push(d); }); });
+        inEl.appendChild(foot = document.createElement("div")); foot.className = "foot";
+        sel = tab.pick; mode = "mean";
+      }
+      sums.classList.toggle("one", n > 4); // the 9-term lines need the full width
+      $("avg-median").disabled = !tab.whole;
+      hint.textContent = tab.hint;
+      press(Object.keys(TABS), id);
+      render();
+    }
+    Object.keys(TABS).forEach(function (id) { $(id).onclick = function () { build(id); }; });
+    $("avg-mean").onclick = function () { mode = "mean"; render(); };
+    $("avg-median").onclick = function () { mode = "median"; render(); };
+    build("avg-t1");
   })();
 
   /* ---------- 5. stroke playground ---------- */
