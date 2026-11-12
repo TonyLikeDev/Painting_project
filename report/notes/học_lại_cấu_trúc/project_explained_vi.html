@@ -47,6 +47,7 @@ code { font-size: .82em; background: var(--tint); border: 1px solid var(--line);
 h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
 h2 { font-size: clamp(1.55rem, 2.5vw, 2.1rem); }
 h3 { font-size: 1.1rem; letter-spacing: -0.01em; }
+h3.sub { font-size: 1.25rem; margin: 44px 0 12px; }
 p { margin: 0 0 1rem; }
 ul { padding-left: 1.2rem; }
 li { margin: .25rem 0; }
@@ -686,11 +687,52 @@ footer p { margin: 0 0 .6rem; }
     <section class="step" id="b8">
       <div class="step-head"><span class="step-num">8</span><h2>Mạng neural bắt chước cọ thật</h2></div>
       <p class="src">Mã: <code>models/neural_renderer.py</code>, <code>pipeline/train_renderer.py</code></p>
+      <h3 class="sub">Mạng dùng để làm gì?</h3>
       <div class="prose">
-        <p>Cách vẽ thật ở bước 5 (dán ảnh mẫu, làm tròn về pixel, chọn mẫu theo ngưỡng) <b>không cho tính đạo hàm</b>: dời nét một chút xíu thì
-          tranh không đổi gì, dời thêm chút nữa thì nét nhảy hẳn sang pixel bên cạnh. Giải pháp là một <b>mạng neural</b> học <b>bắt chước</b>
-          cọ thật: đưa vào 12 con số, nó vẽ ra ô 32 × 32 gần giống cọ thật, và hình nó vẽ <b>thay đổi mượt</b> nên tính được đạo hàm.</p>
+        <p>Mạng neural trong dự án chỉ làm <b>một việc</b>: nhận 12 con số của một nét và <b>vẽ ra nét đó</b> trên một ô 32 × 32 pixel. Kết quả gồm
+          một ảnh màu nét và một mặt nạ cho biết nét phủ những pixel nào. Nói cách khác, nó là một <b>cây cọ giả</b>, làm đúng việc của cây cọ thật
+          ở bước 5.</p>
+        <p>Cần cọ giả vì cọ thật (dán ảnh mẫu, làm tròn về pixel, chọn mẫu theo ngưỡng) <b>không cho tính đạo hàm</b>: dời nét một chút xíu thì
+          tranh không đổi gì, dời thêm chút nữa thì nét nhảy hẳn sang pixel bên cạnh. Hình do mạng vẽ <b>thay đổi mượt</b> theo 12 con số, nên
+          bước 7 tính được "nhích số này một chút thì độ sai đổi bao nhiêu".</p>
       </div>
+      <dl class="defs">
+        <dt>Mạng làm</dt>
+        <dd>Vẽ các nét trong mỗi vòng "thử, đo, sửa" của bước 7. Đây là chỗ duy nhất dùng mạng. Ở chế độ chất lượng tốt nhất (500 nét), một bức
+          tranh có 2475 bước như vậy, mỗi bước vẽ lại mọi nét đang có trong mọi ô.</dd>
+        <dt>Mạng không làm</dt>
+        <dd>Không xem hay hiểu ảnh chụp (không biết đâu là núi, đâu là trời). Không chọn chỗ đặt nét (bước 6 làm việc đó bằng bản đồ sai lệch).
+          Không vẽ bức tranh cuối: tranh 512 × 512 do cọ thật vẽ (bước 9).</dd>
+      </dl>
+
+      <h3 class="sub">Dữ liệu huấn luyện là gì?</h3>
+      <div class="prose">
+        <p><b>Không có ảnh chụp, cũng không có bức tranh nào.</b> Mỗi mẫu dữ liệu là một cặp <b>(12 con số, hình nét)</b>, và máy tính tự sinh
+          ra các cặp này:</p>
+      </div>
+      <dl class="defs">
+        <dt>1. Bốc 12 số</dt>
+        <dd>Mỗi số được chọn ngẫu nhiên, đều trong khoảng [0, 1], độc lập với các số khác. Đây là <b>đầu vào</b> của mạng.</dd>
+        <dt>2. Cọ thật vẽ đáp án</dt>
+        <dd>Cọ thật của bước 5 vẽ nét đó lên một ô đen 32 × 32, ra một ảnh màu nét và một mặt nạ. Đây là <b>đáp án</b> (nhãn) mà mạng phải vẽ giống.</dd>
+        <dt>3. Lặp lại</dt>
+        <dd>Mỗi lượt học (<i>epoch</i>) sinh <b>50 000 nét mới</b>, chưa từng thấy. Học 100 lượt là 5 triệu cặp. Dữ liệu được sinh ngay trong
+          lúc học, không lưu file nào.</dd>
+        <dt>4. Bộ kiểm tra</dt>
+        <dd>Riêng ra <b>1 000 nét cố định</b> (luôn sinh từ cùng một hạt giống ngẫu nhiên). Bộ này không bao giờ dùng để học, chỉ dùng để chấm
+          xem mạng vẽ giống cọ thật tới đâu.</dd>
+      </dl>
+      <figure class="fig">
+        <div class="frame"><img src="../../figures/explainer_training_samples.png" alt="Sáu mẫu dữ liệu huấn luyện: các con số và hình nét do cọ thật vẽ"></div>
+        <figcaption>Sáu mẫu dữ liệu huấn luyện thật, sinh bằng đúng mã huấn luyện (<code>SyntheticStrokes</code>, hạt giống 0). Hàng trên là
+          các con số đầu vào: x, y là tâm nét; w, h là kích thước; góc; màu ở hai đầu nét (R, G, B). Số thứ 12 là độ che α, cọ sơn dầu không dùng
+          nên không ghi. Hai hàng dưới là đáp án do cọ thật vẽ.</figcaption>
+      </figure>
+      <div class="why"><strong>Vì sao dữ liệu như vậy?</strong> Mạng chỉ cần bắt chước cây cọ, không cần hiểu ảnh. Cọ thật là một chương trình,
+        nên muốn bao nhiêu đáp án cũng có, đúng tuyệt đối, không cần người gán nhãn. Các số được bốc đều trên cả khoảng [0, 1] vì khi tinh chỉnh
+        ở bước 7, chúng có thể đi tới bất cứ đâu trong khoảng đó, nên mạng phải vẽ đúng ở mọi chỗ.</div>
+
+      <h3 class="sub">Huấn luyện thế nào?</h3>
       <div class="flow" aria-label="Kiến trúc FusionNet">
         <div class="box">12 con số<small>tham số nét</small></div>
         <div class="arr">→</div>
@@ -699,14 +741,37 @@ footer p { margin: 0 0 .6rem; }
           <div class="box">Nhánh màu<small>nhận cả 12 số, ra trường màu c</small></div>
         </div>
         <div class="arr">→</div>
-        <div class="box f">Ghép<small>màu nét = c ⊙ m<br>độ che = α · m</small></div>
+        <div class="box f">Ghép<small>màu nét = c ⊙ m<br>độ che = α · m (sơn dầu: α = 1)</small></div>
       </div>
       <div class="prose">
-        <p>Kiến trúc này gọi là <b>FusionNet</b>: hai nhánh riêng cho hình dạng và màu, rồi nhân lại với nhau (⊙ là nhân từng pixel).</p>
-        <p><b>Huấn luyện:</b> sinh ngẫu nhiên tham số nét, cho cọ thật vẽ làm "đáp án", rồi dạy mạng vẽ giống đáp án (hàm mất mát là sai số bình
-          phương, MSE). Khi vẽ, hệ thống dùng mạng đã huấn luyện sẵn của bài gốc; dự án cũng tự huấn luyện lại một mạng sơn dầu (100 lượt,
-          mỗi lượt 50 000 nét mới, tổng cộng 5 triệu nét) để kiểm chứng. Không có bức tranh nào trong dữ liệu:
-          mạng học <i>cây cọ</i>, không học <i>nghệ thuật</i>.</p>
+        <p>Kiến trúc này gọi là <b>FusionNet</b>: hai nhánh riêng cho hình dạng và màu, rồi nhân lại với nhau (⊙ là nhân từng pixel). Bản nhẹ
+          dùng trong dự án có khoảng <b>5.4 triệu trọng số</b>: đó là những con số bên trong mạng mà việc huấn luyện phải tìm ra.</p>
+      </div>
+      <dl class="defs">
+        <dt>Hàm mất mát</dt>
+        <dd>Sai số bình phương trung bình (MSE) giữa hình mạng vẽ và đáp án, tính cho ảnh màu nét và cho mặt nạ rồi lấy trung bình (nhân thêm
+          100 cho số dễ đọc).</dd>
+        <dt>Một bước học</dt>
+        <dd>Đưa vào 64 nét (một <i>batch</i>), mạng vẽ, đo độ sai, lan truyền ngược để có đạo hàm theo từng trọng số, rồi bộ tối ưu Adam chỉnh
+          các trọng số một chút. Tốc độ học 0.0002, giảm 10 lần sau mỗi 25 lượt.</dd>
+        <dt>Cả quá trình</dt>
+        <dd>100 lượt × 50 000 nét, khoảng 51 phút trên RTX 3070. Phần chậm là cọ thật vẽ đáp án trên CPU, không phải bản thân mạng.</dd>
+        <dt>Kết quả</dt>
+        <dd>Trên 1 000 nét kiểm tra, mạng dự án tự huấn luyện đạt <b>24.16 dB</b> PSNR, gần bằng mạng của bài gốc (<b>24.38 dB</b>). Riêng ảnh
+          màu nét là 27.2 dB, mặt nạ là 21.2 dB.</dd>
+      </dl>
+      <figure class="fig">
+        <div class="frame"><img src="../../figures/renderer_training_curve_oil_light.png" alt="Đường học của mạng sơn dầu: độ sai giảm, độ giống tăng qua 100 lượt"></div>
+        <figcaption>Mạng sơn dầu của dự án học qua 100 lượt. Trái: độ sai khi học (<i>training loss</i>) giảm dần; các vạch đứng là lúc tốc độ
+          học giảm 10 lần. Phải: độ giống trên 1 000 nét kiểm tra (PSNR, càng cao càng giống) của ảnh màu nét (<i>foreground</i>), mặt nạ
+          (<i>opacity</i>) và trung bình (<i>mean</i>); đường đỏ đứt là mạng của bài gốc.</figcaption>
+      </figure>
+      <div class="why"><strong>Hai lần dùng đạo hàm, ngược vai nhau.</strong> Khi <b>huấn luyện</b>, 12 con số của nét là cố định (bốc ngẫu
+        nhiên), và cái được chỉnh là 5.4 triệu trọng số của mạng. Khi <b>vẽ tranh</b> (bước 7), trọng số của mạng đứng yên, và cái được chỉnh
+        là 12 con số của mỗi nét. Mạng được huấn luyện <b>một lần</b> (mỗi loại cọ một mạng riêng), rồi dùng cho mọi bức ảnh.</div>
+      <div class="prose">
+        <p><b>Khi vẽ dùng mạng nào?</b> Hệ thống dùng mạng đã huấn luyện sẵn của bài gốc, để kết quả so sánh được với bài gốc. Mạng mà dự án tự
+          huấn luyện (theo cùng công thức) là để kiểm chứng rằng cách huấn luyện được làm lại đúng: nó vẽ giống cọ thật gần bằng mạng gốc.</p>
       </div>
       <figure class="fig">
         <div class="frame"><img src="../../figures/renderer_comparison_oil_light.png" alt="Cọ thật so với mạng neural"></div>
