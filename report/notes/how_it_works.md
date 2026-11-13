@@ -15,6 +15,17 @@ rasterizer draws them at full size; the painting, the strokes and the time-lapse
 coarse to fine, and inside it every stroke gets about 55 optimiser steps before the next one is placed. The neural renderer
 *finds* the strokes; the procedural rasterizer *draws* them.
 
+**In plain words.** The program does not "know" what to paint. It guesses, checks and nudges, many times over:
+
+1. Start from a blank canvas. A stroke is just a list of numbers (position, size, angle, colour, opacity).
+2. Put a new stroke where the canvas differs most from the photo, in the photo's colour at that spot.
+3. Draw the strokes with a neural network that imitates a real brush. Because the network is differentiable, the program can
+   compute how a tiny change of each number would change the picture.
+4. Compare the picture with the photo (mean absolute pixel error) and move every number a little in the direction that lowers
+   the error. This is gradient descent, repeated about 55 times per stroke.
+5. Do this for a big grid first (1 block), then smaller ones (2 x 2 up to 5 x 5): big strokes first, detail last.
+6. Draw the final strokes once more with the exact, non-neural rasterizer. That is the painting.
+
 ## 2. Images in and out
 
 A photo enters as an RGB array of 32-bit floats in $[0, 1]$ and leaves as a $512 \times 512$ painting plus the list of strokes
@@ -127,6 +138,13 @@ For each new stroke the engine runs these steps, for all blocks at once as one G
 1. **Place it where the canvas is most wrong** (`pipeline/stroke_sampler.py`). The error map, the colour difference between
    photo and canvas, is blurred and raised to the 4th power, then one pixel is drawn from it at random. The stroke starts there,
    in the photo's colour at that pixel, with the brush's start size.
+
+   *Where the colour comes from.* The start colour is a copy of one photo pixel (the stroke's centre), not a guess. The two-colour
+   brushes (oil, watercolour) get that colour twice, so both ends of a new stroke start identical. The colour numbers are then
+   optimised like all the others: a single pixel may be noise or an edge, and a stroke covers many pixels and blends with the
+   strokes under it, so the optimiser pulls the colour toward what makes the whole painting closest to the photo. For a stroke over
+   a fairly even area that is a typical colour of the area (an L1 loss favours the median rather than the mean). Only this
+   optimisation can make the two ends differ.
 2. **Render and composite.** The neural renderer draws every stroke of the block; a $3 \times 3$ dilation and erosion tidy the
    edges; the strokes are composited in order onto the starting canvas.
 3. **Score and update.** The loss is back-propagated to the stroke numbers and the RMSprop optimiser takes a step. Shape numbers
@@ -138,6 +156,9 @@ For each new stroke the engine runs these steps, for all blocks at once as one G
 $5 \times 5$, which is 55 blocks. The 500-stroke budget is shared equally, 9 strokes per block, so 495 strokes are painted. Each
 level starts from the painting the earlier levels left: big strokes first, detail last. Because coarse strokes cross the borders
 of the finer blocks, no seams of bare canvas show along the grid lines.
+
+**Order of the strokes.** The saved order is the replay order: stroke $j$ of every block comes before stroke $j+1$ of any block
+(blocks shuffled with the run's seed), so a time-lapse fills the whole picture evenly instead of finishing one block at a time.
 
 After each level its strokes are mapped to whole-image coordinates and drawn by the exact rasterizer at 512 px, and that picture
 becomes the next level's starting canvas. Two other modes reproduce the original's demos: `fixed` (only the $5 \times 5$ grid)
@@ -165,7 +186,7 @@ results in a folder.
 | Brush layouts | YAML | `configs/*.yaml` |
 | Web page | Gradio 6.27 | `app/gradio_app.py` |
 | Time-lapse | imageio-ffmpeg (H.264 MP4), Pillow (GIF) | `export/video_recorder.py` |
-| Tests | pytest, 259 tests | `tests/` |
+| Tests | pytest, 269 tests | `tests/` |
 
 The device is always chosen explicitly (`core/device.get_device`), never set globally. On Windows every painting script first
 opts out of power throttling, which otherwise moved background runs to the slow cores and made them 2 to 4 times slower.
@@ -175,7 +196,7 @@ settings:
 
 - **Command line**: `scripts/run_paint.py photo.jpg --brush oil --strokes 500`, with a live progress line in the terminal.
 - **Web app**: `python -m neural_painter.app.gradio_app`, or a double-click on `Start_App.bat`, opens the page in the browser,
-  in Vietnamese or English.
+  in Vietnamese or English. On a Mac use `start_app.command` (make it executable once with `chmod +x start_app.command`).
 
 What happens when you press Paint in the web app:
 
@@ -208,7 +229,9 @@ it takes about 2 minutes.
 | `cpu`, i5-13400F, 10 threads | 108 s | 130 s |
 
 Light oil renderer, 500 strokes, each run alone (Week 7). Drawing the final 512 px picture adds 0.9 to 1.4 s, and each
-time-lapse file about 2 s. The Apple `mps` rows are still to be measured on the MacBook.
+time-lapse file about 2 s. The Apple `mps` rows are still to be measured on the MacBook. A first check on the MacBook (M4, `mps`,
+`experiments/2026-10-23_check_darwin_arm64_mps/`) shows that everything runs there; a smaller painting (100 strokes, fixed
+5 x 5 grid, pixel loss) took 14.2 s to optimise. It is not comparable with the table, which uses 500 strokes.
 
 Progressive mode is slower but better for every brush. Mean over 10 held-out images and 3 seeds (higher PSNR is better, lower
 LPIPS is better):
